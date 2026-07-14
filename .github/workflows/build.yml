@@ -44,21 +44,30 @@ jobs:
           ts=$(date +'%Y%m%d-%H%M%S')
           echo "tag=v${{ steps.apk.outputs.version }}-$ts" >> $GITHUB_OUTPUT
 
+      - name: Extract changelog for current version
+        id: changelog
+        run: |
+          version="${{ steps.apk.outputs.version }}"
+          # 从 CHANGELOG.md 提取 ## v{version} 段落（到下一个 ## 为止）
+          awk -v ver="v$version" '
+            /^## v/ {
+              if (in_section) exit
+              if (index($0, "## " ver)) { in_section=1; next }
+            }
+            in_section { print }
+          ' CHANGELOG.md > /tmp/release_body.md
+          # 若未匹配到，使用兜底文案
+          if [ ! -s /tmp/release_body.md ]; then
+            printf '## 更新内容\n\n本版本的详细更新请见 [CHANGELOG.md](CHANGELOG.md)。\n' > /tmp/release_body.md
+          fi
+          echo "Extracted body for v$version:"
+          cat /tmp/release_body.md
+
       - name: Create Release & Upload APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: fitness ${{ steps.apk.outputs.version }} (${{ steps.apk.outputs.sha }})
-          body: |
-            ## 自动构建发布
-
-            由 GitHub Actions 在推送到 main 分支时自动构建。
-
-            - 提交: ${{ steps.apk.outputs.sha }}
-            - 版本: ${{ steps.apk.outputs.version }}
-
-            ### 安装
-
-            下载下方 `fitness-release.apk`，允许"未知来源应用安装"后点击安装即可。应用为离线应用，无需联网权限。
+          body_path: /tmp/release_body.md
           files: artifacts/fitness-release.apk
           make_latest: true
