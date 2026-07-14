@@ -31,6 +31,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitness.app.data.ExerciseRepository
+import com.fitness.app.ui.feature.AboutScreen
 import com.fitness.app.ui.feature.CalendarScreen
 import com.fitness.app.ui.feature.CategoryScreen
 import com.fitness.app.ui.feature.ExerciseDetailScreen
