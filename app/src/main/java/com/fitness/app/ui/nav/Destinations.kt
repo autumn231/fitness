@@ -37,6 +37,10 @@ sealed class Destinations(val route: String) {
         fun create(id: Long) = "planDetail/$id"
     }
 
+    object PlanTraining : Destinations("planTraining/{planId}") {
+        fun create(id: Long) = "planTraining/$id"
+    }
+
     object Picker : Destinations("picker/{planId}") {
         fun create(planId: Long) = "picker/$planId"
     }

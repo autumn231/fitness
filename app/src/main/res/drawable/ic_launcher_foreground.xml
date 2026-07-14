@@ -3,39 +3,15 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- ===== 像素风格手握哑铃 ===== -->
-    <!-- 设计区域 30~78 x 36~72，居中留白充足 -->
-
-    <!-- 左哑铃片 -->
-    <path android:fillColor="#FF6B35" android:pathData="M30,36 h10 v28 h-10 z" />
-    <path android:fillColor="#D9531A" android:pathData="M30,40 h4 v20 h-4 z" />
-    <path android:fillColor="#FF9966" android:pathData="M36,38 h2 v24 h-2 z" />
-
-    <!-- 右哑铃片 -->
-    <path android:fillColor="#FF6B35" android:pathData="M68,36 h10 v28 h-10 z" />
-    <path android:fillColor="#D9531A" android:pathData="M74,40 h4 v20 h-4 z" />
-    <path android:fillColor="#FF9966" android:pathData="M70,38 h2 v24 h-2 z" />
-
-    <!-- 哑铃杆 -->
-    <path android:fillColor="#D9531A" android:pathData="M40,47 h28 v6 h-28 z" />
-    <path android:fillColor="#FF9966" android:pathData="M40,48 h28 v1 h-28 z" />
-
-    <!-- 手指关节（握住杆） -->
-    <path android:fillColor="#D9A066" android:pathData="M43,50 h4 v4 h-4 z" />
-    <path android:fillColor="#D9A066" android:pathData="M49,50 h4 v4 h-4 z" />
-    <path android:fillColor="#D9A066" android:pathData="M55,50 h4 v4 h-4 z" />
-    <path android:fillColor="#D9A066" android:pathData="M61,50 h4 v4 h-4 z" />
-
-    <!-- 拳头主体 -->
-    <path android:fillColor="#FFCC99" android:pathData="M40,53 h28 v14 h-28 z" />
-
-    <!-- 拇指（左侧包裹杆） -->
-    <path android:fillColor="#FFCC99" android:pathData="M36,49 h6 v12 h-6 z" />
-    <path android:fillColor="#D9A066" android:pathData="M36,57 h2 v4 h-2 z" />
-
-    <!-- 手腕 -->
-    <path android:fillColor="#FFCC99" android:pathData="M46,67 h16 v5 h-16 z" />
-    <path android:fillColor="#D9A066" android:pathData="M46,70 h16 v2 h-16 z" />
-
+    <!-- 简洁哑铃图标，居中并保留安全边距（不贴边） -->
+    <!-- 左侧配重片 -->
+    <path android:fillColor="#FF6B35" android:pathData="M28,40 h10 v28 h-10 z" />
+    <!-- 右侧配重片 -->
+    <path android:fillColor="#FF6B35" android:pathData="M70,40 h10 v28 h-10 z" />
+    <!-- 中间横杆 -->
+    <path android:fillColor="#FF6B35" android:pathData="M28,51 h52 v6 h-52 z" />
+    <!-- 左侧颈缩 -->
+    <path android:fillColor="#FF6B35" android:pathData="M38,48 h4 v12 h-4 z" />
+    <!-- 右侧颈缩 -->
+    <path android:fillColor="#FF6B35" android:pathData="M66,48 h4 v12 h-4 z" />
 </vector>

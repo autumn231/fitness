@@ -41,6 +41,7 @@ import com.fitness.app.ui.feature.PickerScreen
 import com.fitness.app.ui.feature.PlanDetailScreen
 import com.fitness.app.ui.feature.PlanEditorScreen
 import com.fitness.app.ui.feature.PlanScreen
+import com.fitness.app.ui.feature.PlanTrainingScreen
 import com.fitness.app.ui.feature.ProfileScreen
 import com.fitness.app.ui.feature.SearchScreen
 import com.fitness.app.ui.feature.SettingsScreen
@@ -221,6 +222,18 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                     onBack = { nav.popBackStack() },
                     onEdit = { nav.navigate(Destinations.PlanEditor.create(planId)) },
                     onPick = { nav.navigate(Destinations.Picker.create(planId)) },
+                    onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) },
+                    onStartTraining = { nav.navigate(Destinations.PlanTraining.create(planId)) }
+                )
+            }
+            composable(
+                Destinations.PlanTraining.route,
+                arguments = listOf(navArgument("planId") { type = NavType.LongType })
+            ) { entry ->
+                val planId = entry.arguments?.getLong("planId") ?: 0L
+                PlanTrainingScreen(
+                    repo, planId,
+                    onBack = { nav.popBackStack() },
                     onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) }
                 )
             }
