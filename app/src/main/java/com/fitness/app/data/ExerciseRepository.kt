@@ -56,6 +56,12 @@ class ExerciseRepository(
 
     suspend fun recordView(id: String) = database.recentDao().upsert(RecentEntity(id))
 
+    /** 清空所有最近浏览记录 */
+    suspend fun clearRecents() = database.recentDao().clear()
+
+    /** 清空所有收藏 */
+    suspend fun clearFavorites() = database.favoriteDao().clear()
+
     // ---------- 训练计划 ----------
     fun observePlans(): Flow<List<PlanWithItems>> = database.planDao().observePlans()
 

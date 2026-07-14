@@ -1,5 +1,10 @@
 package com.fitness.app.ui.common
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,9 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,10 +30,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +50,9 @@ import com.fitness.app.i18n.displayName
 import com.fitness.app.i18n.equipmentZh
 import com.fitness.app.i18n.muscleZh
 import com.fitness.app.i18n.subtitle
+import com.fitness.app.ui.theme.CardShape
+import com.fitness.app.ui.theme.ChipShape
+import com.fitness.app.ui.theme.ImageShape
 
 /** 从 assets 加载图片的统一封装（gif 也会自动播放） */
 @Composable
@@ -65,7 +75,7 @@ fun LocalAssetImage(
     )
 }
 
-/** 列表/网格中的动作卡片：缩略图 + 显示名 + 副标题 + 标签 */
+/** 现代列表卡片：圆角大图 + 双行标题 + 多彩 Chip */
 @Composable
 fun ExerciseCard(
     exercise: Exercise,
@@ -76,15 +86,24 @@ fun ExerciseCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = CardShape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
-        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(ImageShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 LocalAssetImage(
@@ -93,7 +112,7 @@ fun ExerciseCard(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = exercise.displayName(),
@@ -110,39 +129,46 @@ fun ExerciseCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Tag(text = bodyPartZh(exercise.body_part))
-                    Tag(text = equipmentZh(exercise.equipment))
+                    ModernChip(text = bodyPartZh(exercise.body_part), style = ChipStyle.PRIMARY)
+                    ModernChip(text = equipmentZh(exercise.equipment), style = ChipStyle.NEUTRAL)
                 }
             }
         }
     }
 }
 
+enum class ChipStyle { PRIMARY, NEUTRAL, ACCENT }
+
 @Composable
-fun Tag(
+fun ModernChip(
     text: String,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
+    style: ChipStyle = ChipStyle.NEUTRAL
 ) {
+    val (container, content) = when (style) {
+        ChipStyle.PRIMARY -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        ChipStyle.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        ChipStyle.ACCENT -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+    }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(containerColor)
+            .clip(ChipShape)
+            .background(container)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = contentColor,
-            maxLines = 1
+            color = content,
+            maxLines = 1,
+            fontWeight = FontWeight.Medium
         )
     }
 }
 
-/** 章节标题（左标题 + 右可选操作文本） */
+/** 章节标题（现代风格：大标题 + 右操作文本） */
 @Composable
 fun SectionHeader(
     title: String,
@@ -153,13 +179,13 @@ fun SectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
         if (action != null && onAction != null) {
@@ -167,12 +193,14 @@ fun SectionHeader(
                 text = action,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable(onClick = onAction)
             )
         }
     }
 }
 
+/** 空状态（现代风格：大图标 + 渐变底色） */
 @Composable
 fun EmptyState(
     icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Outlined.Search,
@@ -183,34 +211,99 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(72.dp)
-        )
-        Spacer(Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(48.dp)
+                    .scale(0.9f)
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold
         )
         if (subtitle.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
 }
 
-/** 简单的运动列表（用于详情页/计划详情的"相关动作"等） */
+/** 骨架屏卡片 — 用于加载占位 */
+@Composable
+fun SkeletonCard(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            tween(900),
+            RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+    val color = lerp(
+        MaterialTheme.colorScheme.surfaceVariant,
+        MaterialTheme.colorScheme.surfaceContainerHigh,
+        alpha
+    )
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(ImageShape)
+                    .background(color)
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(18.dp)
+                        .clip(ChipShape)
+                        .background(color)
+                )
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.4f)
+                        .height(12.dp)
+                        .clip(ChipShape)
+                        .background(color)
+                )
+            }
+        }
+    }
+}
+
+/** 简单的运动列表 */
 @Composable
 fun ExerciseList(
     exercises: List<Exercise>,
@@ -221,7 +314,7 @@ fun ExerciseList(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(exercises, key = { it.id }) { ex ->
             ExerciseCard(exercise = ex, onClick = { onClick(ex) })
@@ -229,13 +322,13 @@ fun ExerciseList(
     }
 }
 
-/** 训练动作详情页常用的"信息行" */
+/** 信息行（详情页使用） */
 @Composable
 fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
@@ -252,12 +345,16 @@ fun InfoRow(label: String, value: String) {
     }
 }
 
-/** 收藏小图标的轻量复用（避免重复依赖） */
+/** 渐变色块（用于 Hero 区背景） */
 @Composable
-fun FavoriteIconPlaceholder() {
-    Icon(
-        imageVector = Icons.Outlined.Favorite,
-        contentDescription = "收藏",
-        tint = MaterialTheme.colorScheme.outline
+fun gradientBrush(
+    vararg colors: Color,
+    angle: Float = 0f
+) = androidx.compose.ui.graphics.Brush.linearGradient(
+    colors = colors.toList(),
+    start = androidx.compose.ui.geometry.Offset(0f, 0f),
+    end = androidx.compose.ui.geometry.Offset(
+        1000f * androidx.compose.ui.geometry.cos(Math.toRadians(angle.toDouble())).toFloat(),
+        1000f * androidx.compose.ui.geometry.sin(Math.toRadians(angle.toDouble())).toFloat()
     )
-}
+)

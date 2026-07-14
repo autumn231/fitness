@@ -1,5 +1,6 @@
 package com.fitness.app.ui.feature
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,14 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fitness.app.data.ExerciseRepository
@@ -36,6 +38,7 @@ import com.fitness.app.i18n.groupByBodyPart
 import com.fitness.app.i18n.groupByEquipment
 import com.fitness.app.i18n.groupByTarget
 import com.fitness.app.ui.nav.Destinations
+import com.fitness.app.ui.theme.CardShape
 
 private enum class CategoryTab(val title: String) {
     BODYPART("按部位"),
@@ -68,23 +71,29 @@ fun CategoryScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = "动作分类",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp)
+        )
+        Text(
+            text = "选择一个分类查看对应动作",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
         )
         SecondaryTabRow(selectedTabIndex = tabIndex) {
             tabs.forEachIndexed { i, tab ->
                 Tab(
                     selected = tabIndex == i,
                     onClick = { tabIndex = i },
-                    text = { Text(tab.title) }
+                    text = { Text(tab.title, fontWeight = if (tabIndex == i) FontWeight.SemiBold else FontWeight.Normal) }
                 )
             }
         }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(groups, key = { it.keyEn }) { entry ->
                 CategoryRow(entry = entry) {
@@ -97,22 +106,25 @@ fun CategoryScreen(
 
 @Composable
 private fun CategoryRow(entry: CategoryEntry, onClick: () -> Unit) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = CardShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = entry.nameZh,
                     style = MaterialTheme.typography.titleMedium,
@@ -127,14 +139,16 @@ private fun CategoryRow(entry: CategoryEntry, onClick: () -> Unit) {
             }
             Box(
                 modifier = Modifier
-                    .padding(start = 8.dp),
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "${entry.count}",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = entry.count.toString(),
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

@@ -1,5 +1,13 @@
 package com.fitness.app.ui.nav
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -11,13 +19,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -61,11 +69,16 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
         }
     }
 
-    if (loading) {
+    // 启动加载动画
+    AnimatedVisibility(
+        visible = loading,
+        enter = fadeIn(tween(200)),
+        exit = fadeOut(tween(200))
+    ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        return
+        return@AnimatedVisibility
     }
 
     loadError?.let { err ->
@@ -79,51 +92,73 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
 
     Scaffold(
         bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    tabs.forEach { tab ->
-                        val selected = currentRoute == tab.dest.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                if (!selected) {
-                                    nav.navigate(tab.dest.route) {
-                                        popUpTo(Destinations.Home.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = if (selected) tab.selectedIcon else tab.icon,
-                                    contentDescription = tab.label
-                                )
-                            },
-                            label = { Text(tab.label) }
-                        )
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = slideInVertically(tween(220)) { it } + fadeIn(tween(220)),
+                exit = slideOutVertically(tween(220)) { it } + fadeOut(tween(220))
+            ) {
+                ModernNavigationBar(
+                    tabs = tabs,
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        nav.navigate(route) {
+                            popUpTo(Destinations.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
+                )
             }
         }
     ) { inner ->
         NavHost(
             navController = nav,
             startDestination = Destinations.Home.route,
-            modifier = Modifier.padding(inner)
+            modifier = Modifier.padding(inner),
+            enterTransition = { slideInHorizontally() },
+            exitTransition = { slideOutHorizontally() },
+            popEnterTransition = { popSlideInHorizontally() },
+            popExitTransition = { popSlideOutHorizontally() }
         ) {
-            composable(Destinations.Home.route) {
+            // Tab 主页 — 使用淡入淡出避免与底部栏切换冲突
+            composable(
+                Destinations.Home.route,
+                enterTransition = { tabFadeIn() },
+                exitTransition = { tabFadeOut() },
+                popEnterTransition = { tabFadeIn() },
+                popExitTransition = { tabFadeOut() }
+            ) {
                 HomeScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Destinations.Category.route) {
+            composable(
+                Destinations.Category.route,
+                enterTransition = { tabFadeIn() },
+                exitTransition = { tabFadeOut() },
+                popEnterTransition = { tabFadeIn() },
+                popExitTransition = { tabFadeOut() }
+            ) {
                 CategoryScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Destinations.Plan.route) {
+            composable(
+                Destinations.Plan.route,
+                enterTransition = { tabFadeIn() },
+                exitTransition = { tabFadeOut() },
+                popEnterTransition = { tabFadeIn() },
+                popExitTransition = { tabFadeOut() }
+            ) {
                 PlanScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Destinations.Profile.route) {
+            composable(
+                Destinations.Profile.route,
+                enterTransition = { tabFadeIn() },
+                exitTransition = { tabFadeOut() },
+                popEnterTransition = { tabFadeIn() },
+                popExitTransition = { tabFadeOut() }
+            ) {
                 ProfileScreen(repo) { route -> nav.navigate(route) }
             }
+
+            // 子页 — 滑动动画
             composable(Destinations.Search.route) {
                 SearchScreen(
                     repo = repo,
@@ -169,7 +204,8 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 arguments = listOf(navArgument("planId") { type = NavType.LongType })
             ) { entry ->
                 val planId = entry.arguments?.getLong("planId") ?: 0L
-                PlanEditorScreen(repo, planId,
+                PlanEditorScreen(
+                    repo, planId,
                     onSaved = { nav.popBackStack() },
                     onBack = { nav.popBackStack() }
                 )
@@ -179,7 +215,8 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 arguments = listOf(navArgument("planId") { type = NavType.LongType })
             ) { entry ->
                 val planId = entry.arguments?.getLong("planId") ?: 0L
-                PlanDetailScreen(repo, planId,
+                PlanDetailScreen(
+                    repo, planId,
                     onBack = { nav.popBackStack() },
                     onEdit = { nav.navigate(Destinations.PlanEditor.create(planId)) },
                     onPick = { nav.navigate(Destinations.Picker.create(planId)) },
@@ -191,11 +228,39 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 arguments = listOf(navArgument("planId") { type = NavType.LongType })
             ) { entry ->
                 val planId = entry.arguments?.getLong("planId") ?: 0L
-                PickerScreen(repo, planId,
+                PickerScreen(
+                    repo, planId,
                     onBack = { nav.popBackStack() },
                     onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ModernNavigationBar(
+    tabs: List<TabItem>,
+    currentRoute: String?,
+    onNavigate: (String) -> Unit
+) {
+    NavigationBar {
+        tabs.forEach { tab ->
+            val selected = currentRoute == tab.dest.route
+            NavigationBarItem(
+                selected = selected,
+                onClick = { if (!selected) onNavigate(tab.dest.route) },
+                icon = {
+                    // 选中时图标轻微放大动画
+                    Icon(
+                        imageVector = if (selected) tab.selectedIcon else tab.icon,
+                        contentDescription = tab.label,
+                        modifier = Modifier.scale(if (selected) 1.1f else 1f)
+                    )
+                },
+                label = { Text(tab.label) },
+                alwaysShowLabel = true
+            )
         }
     }
 }

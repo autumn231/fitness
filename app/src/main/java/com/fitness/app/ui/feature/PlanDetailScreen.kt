@@ -24,8 +24,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -55,6 +54,8 @@ import com.fitness.app.i18n.displayName
 import com.fitness.app.i18n.subtitle
 import com.fitness.app.ui.common.EmptyState
 import com.fitness.app.ui.common.LocalAssetImage
+import com.fitness.app.ui.theme.CardShape
+import com.fitness.app.ui.theme.ImageShape
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,15 +120,15 @@ fun PlanDetailScreen(
                 ) {
                     if (pw.plan.note.isNotBlank()) {
                         item {
-                            Card(
+                            Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                shape = CardShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant
                             ) {
                                 Text(
                                     text = pw.plan.note,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(12.dp)
+                                    modifier = Modifier.padding(14.dp)
                                 )
                             }
                         }
@@ -175,20 +176,23 @@ private fun PlanItemRow(
     var setsText by remember(item.id, item.sets) { mutableStateOf(item.sets.toString()) }
     var repsText by remember(item.id, item.reps) { mutableStateOf(item.reps) }
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = CardShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(ImageShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     if (imagePath.isNotBlank()) {
@@ -223,7 +227,7 @@ private fun PlanItemRow(
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

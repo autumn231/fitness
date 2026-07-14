@@ -2,7 +2,6 @@ package com.fitness.app.ui.feature
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -77,19 +76,22 @@ fun PlanEditorScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        if (name.isBlank()) return@IconButton
-                        scope.launch {
-                            if (isNew) {
-                                repo.createPlan(name.trim(), note.trim())
-                            } else {
-                                existing?.let {
-                                    repo.updatePlan(it.copy(name = name.trim(), note = note.trim()))
+                    IconButton(
+                        onClick = {
+                            if (name.isBlank()) return@IconButton
+                            scope.launch {
+                                if (isNew) {
+                                    repo.createPlan(name.trim(), note.trim())
+                                } else {
+                                    existing?.let {
+                                        repo.updatePlan(it.copy(name = name.trim(), note = note.trim()))
+                                    }
                                 }
+                                onSaved()
                             }
-                            onSaved()
-                        }
-                    }) {
+                        },
+                        enabled = name.isNotBlank()
+                    ) {
                         Icon(Icons.Filled.Check, contentDescription = "保存")
                     }
                 }

@@ -13,14 +13,22 @@ private val LightColors = lightColorScheme(
     onPrimary = Color.White,
     primaryContainer = Color(0xFFFFDBCE),
     onPrimaryContainer = Color(0xFF3B0A00),
-    secondary = OrangeDark,
+    secondary = Coral,
     onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFD9DD),
+    onSecondaryContainer = Color(0xFF400010),
+    tertiary = Teal,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFC4F1FB),
+    onTertiaryContainer = Color(0xFF001F26),
     background = LightBackground,
     onBackground = LightOnSurface,
     surface = LightSurface,
     onSurface = LightOnSurface,
     surfaceVariant = LightSurfaceVariant,
     onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
     outline = LightOutline,
     outlineVariant = LightOutline
 )
@@ -30,14 +38,22 @@ private val DarkColors = darkColorScheme(
     onPrimary = Color(0xFF4A1500),
     primaryContainer = Color(0xFF7A2A14),
     onPrimaryContainer = Color(0xFFFFDBCE),
-    secondary = Orange,
-    onSecondary = Color.White,
+    secondary = Coral,
+    onSecondary = Color(0xFF5B0010),
+    secondaryContainer = Color(0xFF7A2A2E),
+    onSecondaryContainer = Color(0xFFFFD9DD),
+    tertiary = Teal,
+    onTertiary = Color(0xFF00363D),
+    tertiaryContainer = Color(0xFF004F58),
+    onTertiaryContainer = Color(0xFFC4F1FB),
     background = DarkBackground,
     onBackground = DarkOnSurface,
     surface = DarkSurface,
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
     outline = DarkOutline,
     outlineVariant = DarkOutline
 )
@@ -52,6 +68,7 @@ fun FitnessTheme(themeMode: ThemeMode, content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (dark) DarkColors else LightColors,
         typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }
