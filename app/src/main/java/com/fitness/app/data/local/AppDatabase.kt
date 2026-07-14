@@ -10,15 +10,17 @@ import androidx.room.RoomDatabase
         FavoriteEntity::class,
         RecentEntity::class,
         PlanEntity::class,
-        PlanItemEntity::class
+        PlanItemEntity::class,
+        CalendarPlanEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun recentDao(): RecentDao
     abstract fun planDao(): PlanDao
+    abstract fun calendarDao(): CalendarDao
 
     companion object {
         @Volatile
@@ -29,7 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "fitness.db"
-            ).build().also { INSTANCE = it }
+            ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
         }
     }
 }

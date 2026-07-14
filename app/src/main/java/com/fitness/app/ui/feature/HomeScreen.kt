@@ -89,7 +89,7 @@ fun HomeScreen(
                     label = "开始训练",
                     subtitle = "我的计划",
                     modifier = Modifier.weight(1f)
-                ) { onNavigate(Destinations.Plan.route) }
+                ) { onNavigate(Destinations.Training.route) }
                 QuickEntry(
                     icon = Icons.Outlined.History,
                     label = "历史记录",

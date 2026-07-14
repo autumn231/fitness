@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -67,8 +66,7 @@ fun PlanDetailScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onPick: () -> Unit,
-    onOpenExercise: (String) -> Unit,
-    onStartTraining: () -> Unit
+    onOpenExercise: (String) -> Unit
 ) {
     val planState = repo.observePlan(planId).collectAsStateWithLifecycle(initialValue = null)
     val pw = planState.value
@@ -84,12 +82,6 @@ fun PlanDetailScreen(
                     }
                 },
                 actions = {
-                    // 仅在有动作时显示"开始训练"
-                    if (pw != null && pw.items.isNotEmpty()) {
-                        IconButton(onClick = onStartTraining) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "开始训练")
-                        }
-                    }
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Filled.Edit, contentDescription = "编辑")
                     }

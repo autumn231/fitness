@@ -31,7 +31,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitness.app.data.ExerciseRepository
-import com.fitness.app.ui.feature.AboutScreen
+import com.fitness.app.ui.feature.CalendarScreen
 import com.fitness.app.ui.feature.CategoryScreen
 import com.fitness.app.ui.feature.ExerciseDetailScreen
 import com.fitness.app.ui.feature.FavoritesScreen
@@ -41,10 +41,10 @@ import com.fitness.app.ui.feature.PickerScreen
 import com.fitness.app.ui.feature.PlanDetailScreen
 import com.fitness.app.ui.feature.PlanEditorScreen
 import com.fitness.app.ui.feature.PlanScreen
-import com.fitness.app.ui.feature.PlanTrainingScreen
 import com.fitness.app.ui.feature.ProfileScreen
 import com.fitness.app.ui.feature.SearchScreen
 import com.fitness.app.ui.feature.SettingsScreen
+import com.fitness.app.ui.feature.TrainingScreen
 
 /**
  * 应用根容器：启动时加载本地数据，加载完成后展示主导航（4 Tab + 子页路由）。
@@ -142,13 +142,22 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 CategoryScreen(repo, navigateTo)
             }
             composable(
-                Destinations.Plan.route,
+                Destinations.Training.route,
                 enterTransition = { tabFadeIn() },
                 exitTransition = { tabFadeOut() },
                 popEnterTransition = { tabFadeIn() },
                 popExitTransition = { tabFadeOut() }
             ) {
-                PlanScreen(repo, navigateTo)
+                TrainingScreen(repo, navigateTo)
+            }
+            composable(
+                Destinations.Calendar.route,
+                enterTransition = { tabFadeIn() },
+                exitTransition = { tabFadeOut() },
+                popEnterTransition = { tabFadeIn() },
+                popExitTransition = { tabFadeOut() }
+            ) {
+                CalendarScreen(repo, navigateTo)
             }
             composable(
                 Destinations.Profile.route,
@@ -161,6 +170,9 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
             }
 
             // 子页 — 滑动动画
+            composable(Destinations.Plans.route) {
+                PlanScreen(repo, navigateTo)
+            }
             composable(Destinations.Search.route) {
                 SearchScreen(
                     repo = repo,
@@ -222,18 +234,6 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                     onBack = { nav.popBackStack() },
                     onEdit = { nav.navigate(Destinations.PlanEditor.create(planId)) },
                     onPick = { nav.navigate(Destinations.Picker.create(planId)) },
-                    onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) },
-                    onStartTraining = { nav.navigate(Destinations.PlanTraining.create(planId)) }
-                )
-            }
-            composable(
-                Destinations.PlanTraining.route,
-                arguments = listOf(navArgument("planId") { type = NavType.LongType })
-            ) { entry ->
-                val planId = entry.arguments?.getLong("planId") ?: 0L
-                PlanTrainingScreen(
-                    repo, planId,
-                    onBack = { nav.popBackStack() },
                     onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) }
                 )
             }

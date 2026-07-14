@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
@@ -141,6 +142,12 @@ fun ProfileScreen(
                 title = "收藏与历史",
                 subtitle = "查看我的收藏与最近浏览",
                 onClick = { onNavigate(Destinations.Favorites.route) }
+            )
+            ProfileItem(
+                icon = Icons.Outlined.FitnessCenter,
+                title = "我的计划",
+                subtitle = "管理训练计划与动作",
+                onClick = { onNavigate(Destinations.Plans.route) }
             )
             ProfileItem(
                 icon = Icons.Outlined.Settings,

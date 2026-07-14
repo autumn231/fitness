@@ -69,3 +69,21 @@ interface PlanDao {
     @Query("DELETE FROM plans WHERE id = :id")
     suspend fun deletePlan(id: Long)
 }
+
+@Dao
+interface CalendarDao {
+    @Query("SELECT * FROM calendar_plans ORDER BY dateKey ASC")
+    fun observeAll(): Flow<List<CalendarPlanEntity>>
+
+    @Query("SELECT * FROM calendar_plans WHERE dateKey = :dateKey")
+    suspend fun get(dateKey: String): CalendarPlanEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: CalendarPlanEntity)
+
+    @Query("DELETE FROM calendar_plans WHERE dateKey = :dateKey")
+    suspend fun remove(dateKey: String)
+
+    @Query("DELETE FROM calendar_plans")
+    suspend fun clear()
+}

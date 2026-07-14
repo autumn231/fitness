@@ -2,6 +2,7 @@ package com.fitness.app.data
 
 import android.content.Context
 import com.fitness.app.data.local.AppDatabase
+import com.fitness.app.data.local.CalendarPlanEntity
 import com.fitness.app.data.local.FavoriteEntity
 import com.fitness.app.data.local.PlanEntity
 import com.fitness.app.data.local.PlanItemEntity
@@ -79,4 +80,15 @@ class ExerciseRepository(
     suspend fun updateItem(item: PlanItemEntity) = database.planDao().updateItem(item)
 
     suspend fun deleteItem(itemId: Long) = database.planDao().deleteItem(itemId)
+
+    // ---------- 日历安排 ----------
+    fun observeCalendarPlans(): Flow<List<CalendarPlanEntity>> = database.calendarDao().observeAll()
+
+    suspend fun getCalendarPlan(dateKey: String): CalendarPlanEntity? =
+        database.calendarDao().get(dateKey)
+
+    suspend fun setCalendarPlan(dateKey: String, planId: Long) =
+        database.calendarDao().upsert(CalendarPlanEntity(dateKey = dateKey, planId = planId))
+
+    suspend fun removeCalendarPlan(dateKey: String) = database.calendarDao().remove(dateKey)
 }

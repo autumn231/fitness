@@ -40,3 +40,14 @@ data class PlanWithItems(
     @Relation(parentColumn = "id", entityColumn = "planId")
     val items: List<PlanItemEntity>
 )
+
+/**
+ * 日历安排：某天执行某个计划。
+ * dateKey 格式为 yyyy-MM-dd，同一天只保留一个计划（主键约束）。
+ */
+@Entity(tableName = "calendar_plans")
+data class CalendarPlanEntity(
+    @PrimaryKey val dateKey: String,
+    val planId: Long,
+    val createdAt: Long = System.currentTimeMillis()
+)

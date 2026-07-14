@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -53,68 +52,86 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.local.PlanItemEntity
+import com.fitness.app.data.local.PlanWithItems
 import com.fitness.app.i18n.displayName
 import com.fitness.app.i18n.subtitle
+import com.fitness.app.ui.common.EmptyState
 import com.fitness.app.ui.common.LocalAssetImage
+import com.fitness.app.ui.nav.Destinations
 import com.fitness.app.ui.theme.CardShape
 import com.fitness.app.ui.theme.ImageShape
 import kotlinx.coroutines.delay
 
+/**
+ * 训练执行页（导航栏"训练"Tab）：
+ * - 顶部可切换计划
+ * - 总用时（可暂停/继续，始终 hh:mm:ss）
+ * - 组间歇倒计时
+ * - 训练清单待办
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlanTrainingScreen(
+fun TrainingScreen(
     repo: ExerciseRepository,
-    planId: Long,
-    onBack: () -> Unit,
-    onOpenExercise: (String) -> Unit
+    onNavigate: (String) -> Unit
 ) {
-    val planState = repo.observePlan(planId).collectAsStateWithLifecycle(initialValue = null)
-    val pw = planState.value
+    val plansState = repo.observePlans().collectAsStateWithLifecycle(initialValue = emptyList())
+    val plans = plansState.value
 
-    // 总用时（秒），进入页面即开始计时
+    // 当前选中计划 id（默认第一个）
+    var selectedPlanId by rememberSaveable(plans.firstOrNull()?.plan?.id) {
+        mutableLongStateOf(plans.firstOrNull()?.plan?.id ?: 0L)
+    }
+    val currentPlan = plans.firstOrNull { it.plan.id == selectedPlanId }
+
+    // 总用时
     var totalSeconds by rememberSaveable { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
+    var timerRunning by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(timerRunning) {
+        while (timerRunning) {
             delay(1000L)
             totalSeconds += 1
         }
     }
 
-    // 组间歇倒计时
-    var restTotal by remember { mutableIntStateOf(90) } // 设定时长
-    var restRemaining by remember { mutableIntStateOf(0) } // 剩余
+    // 组间歇
+    var restTotal by remember { mutableIntStateOf(90) }
+    var restRemaining by remember { mutableIntStateOf(0) }
     var restRunning by remember { mutableStateOf(false) }
     LaunchedEffect(restRunning) {
         while (restRunning && restRemaining > 0) {
             delay(1000L)
             restRemaining -= 1
-            if (restRemaining <= 0) {
-                restRunning = false
-            }
+            if (restRemaining <= 0) restRunning = false
         }
     }
 
-    // 待办完成状态
-    val items = pw?.items ?: emptyList()
-    val completed = remember(items) { mutableStateOf(setOf<Long>()) }
+    // 待办完成状态（按计划 id 记忆）
+    val items = currentPlan?.items ?: emptyList()
+    val completed = remember(selectedPlanId) { mutableStateOf(setOf<Long>()) }
     val completedSet = completed.value
+
+    // 切换计划时重置计时与完成状态
+    LaunchedEffect(selectedPlanId) {
+        totalSeconds = 0L
+        timerRunning = false
+        restRunning = false
+        restRemaining = 0
+        completed.value = emptySet()
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("训练中 · ${pw?.plan?.name ?: ""}", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
+                title = { Text("训练", fontWeight = FontWeight.SemiBold) },
                 actions = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.Stop, contentDescription = "结束训练", tint = MaterialTheme.colorScheme.error)
+                    IconButton(onClick = { onNavigate(Destinations.Plans.route) }) {
+                        Icon(Icons.Filled.Check, contentDescription = "管理计划")
                     }
                 }
             )
@@ -127,73 +144,87 @@ fun PlanTrainingScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 总用时卡片
+            // 计划选择器
             item {
-                TotalTimeCard(totalSeconds = totalSeconds, completed = completedSet.size, total = items.size)
-            }
-
-            // 组间歇卡片
-            item {
-                RestTimerCard(
-                    total = restTotal,
-                    remaining = restRemaining,
-                    running = restRunning,
-                    onPreset = { secs ->
-                        restTotal = secs
-                        restRemaining = secs
-                        restRunning = true
-                    },
-                    onToggle = {
-                        if (restRemaining <= 0) {
-                            restRemaining = restTotal
-                            restRunning = true
-                        } else {
-                            restRunning = !restRunning
-                        }
-                    },
-                    onReset = {
-                        restRunning = false
-                        restRemaining = 0
-                    }
+                PlanSelector(
+                    plans = plans,
+                    current = currentPlan,
+                    onSelect = { selectedPlanId = it.plan.id }
                 )
             }
 
-            // 待办列表标题
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "训练清单",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${completedSet.size}/${items.size}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+            if (currentPlan == null || items.isEmpty()) {
+                item {
+                    EmptyState(
+                        icon = Icons.Outlined.RadioButtonUnchecked,
+                        title = "还没有可选的计划",
+                        subtitle = "请先在「我的计划」中创建训练计划并添加动作",
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
-
-            if (items.isEmpty()) {
+            } else {
+                // 总用时卡片
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = CardShape,
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                    TotalTimeCard(
+                        totalSeconds = totalSeconds,
+                        running = timerRunning,
+                        completed = completedSet.size,
+                        total = items.size,
+                        onToggle = { timerRunning = !timerRunning },
+                        onReset = {
+                            timerRunning = false
+                            totalSeconds = 0L
+                        }
+                    )
+                }
+
+                // 组间歇卡片
+                item {
+                    RestTimerCard(
+                        total = restTotal,
+                        remaining = restRemaining,
+                        running = restRunning,
+                        onPreset = { secs ->
+                            restTotal = secs
+                            restRemaining = secs
+                            restRunning = true
+                        },
+                        onToggle = {
+                            if (restRemaining <= 0) {
+                                restRemaining = restTotal
+                                restRunning = true
+                            } else {
+                                restRunning = !restRunning
+                            }
+                        },
+                        onReset = {
+                            restRunning = false
+                            restRemaining = 0
+                        }
+                    )
+                }
+
+                // 训练清单标题
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "该计划暂无动作",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(16.dp)
+                            text = "训练清单",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${completedSet.size}/${items.size}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
-            } else {
+
                 items(items, key = { it.id }) { item ->
                     val ex = repo.byId(item.exerciseId)
                     TrainingItemRow(
@@ -209,7 +240,7 @@ fun PlanTrainingScreen(
                                 completedSet + item.id
                             }
                         },
-                        onClick = { ex?.let { onOpenExercise(it.id) } }
+                        onClick = { ex?.let { onNavigate(Destinations.Exercise.create(it.id)) } }
                     )
                 }
             }
@@ -217,9 +248,54 @@ fun PlanTrainingScreen(
     }
 }
 
-/** 总用时卡片：渐变背景 + 大号计时 */
+/** 计划选择器：横向可滚动列表，显示所有计划，高亮当前选中 */
 @Composable
-private fun TotalTimeCard(totalSeconds: Long, completed: Int, total: Int) {
+private fun PlanSelector(
+    plans: List<PlanWithItems>,
+    current: PlanWithItems?,
+    onSelect: (PlanWithItems) -> Unit
+) {
+    if (plans.isEmpty()) return
+    androidx.compose.foundation.lazy.LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(plans, key = { it.plan.id }) { pw ->
+            val selected = pw.plan.id == current?.plan?.id
+            Surface(
+                modifier = Modifier
+                    .clickable { onSelect(pw) },
+                shape = CardShape,
+                color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    Text(
+                        text = pw.plan.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${pw.items.size} 个动作",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 总用时卡片：渐变背景 + 大号计时 + 暂停/继续/重置 */
+@Composable
+private fun TotalTimeCard(
+    totalSeconds: Long,
+    running: Boolean,
+    completed: Int,
+    total: Int,
+    onToggle: () -> Unit,
+    onReset: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -235,15 +311,29 @@ private fun TotalTimeCard(totalSeconds: Long, completed: Int, total: Int) {
             .padding(24.dp)
     ) {
         Column {
-            Text(
-                text = "总用时",
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.White.copy(alpha = 0.85f)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "总用时",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.weight(1f)
+                )
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.22f)
+                ) {
+                    Text(
+                        text = if (running) "训练中" else "已暂停",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
             Spacer(Modifier.height(6.dp))
             Text(
                 text = formatClock(totalSeconds),
-                style = MaterialTheme.typography.displayMedium,
+                style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
@@ -253,6 +343,37 @@ private fun TotalTimeCard(totalSeconds: Long, completed: Int, total: Int) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.92f)
             )
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = onToggle,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (running) "暂停" else "开始")
+                }
+                FilledTonalButton(
+                    onClick = onReset,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color.White.copy(alpha = 0.22f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("重置")
+                }
+            }
         }
     }
 }
@@ -281,35 +402,23 @@ private fun RestTimerCard(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
-                if (remaining > 0) {
-                    Text(
-                        text = formatClock(remaining.toLong()),
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Text(
-                        text = "00:00",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(10.dp))
-            if (total > 0) {
-                LinearProgressIndicator(
-                    progress = { if (total == 0) 0f else remaining.toFloat() / total },
-                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                Text(
+                    text = formatClock(remaining.toLong()),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
+            Spacer(Modifier.height(10.dp))
+            LinearProgressIndicator(
+                progress = { if (total == 0) 0f else remaining.toFloat() / total },
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+
             Spacer(Modifier.height(14.dp))
-            // 控制按钮
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = onToggle,
@@ -355,7 +464,7 @@ private fun RestTimerCard(
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 10.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -389,7 +498,6 @@ private fun TrainingItemRow(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 完成勾选
             IconButton(onClick = onToggleDone) {
                 Icon(
                     imageVector = if (done) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
@@ -398,7 +506,6 @@ private fun TrainingItemRow(
                     modifier = Modifier.size(28.dp)
                 )
             }
-            // 缩略图
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -441,15 +548,11 @@ private fun TrainingItemRow(
     }
 }
 
-/** 格式化秒为 mm:ss 或 hh:mm:ss */
+/** 格式化秒为 hh:mm:ss（始终显示小时，支持长时间训练） */
 private fun formatClock(seconds: Long): String {
     val s = seconds.coerceAtLeast(0L)
     val h = s / 3600
     val m = (s % 3600) / 60
     val sec = s % 60
-    return if (h > 0) {
-        "%02d:%02d:%02d".format(h, m, sec)
-    } else {
-        "%02d:%02d".format(m, sec)
-    }
+    return "%02d:%02d:%02d".format(h, m, sec)
 }
