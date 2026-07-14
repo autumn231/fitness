@@ -145,13 +145,13 @@ fun ProfileScreen(
             ProfileItem(
                 icon = Icons.Outlined.Settings,
                 title = "设置",
-                subtitle = "深色模式、清除数据、作者联系方式",
+                subtitle = "深色模式、清除数据",
                 onClick = { onNavigate(Destinations.Settings.route) }
             )
             ProfileItem(
                 icon = Icons.Outlined.Info,
                 title = "关于",
-                subtitle = "数据来源、应用信息",
+                subtitle = "应用信息、作者联系方式、数据来源",
                 onClick = { onNavigate(Destinations.About.route) }
             )
         }

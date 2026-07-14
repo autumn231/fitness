@@ -4,8 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
@@ -69,16 +67,12 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
         }
     }
 
-    // 启动加载动画
-    AnimatedVisibility(
-        visible = loading,
-        enter = fadeIn(tween(200)),
-        exit = fadeOut(tween(200))
-    ) {
+    // 加载中：仅显示进度，不渲染 NavHost（避免 HomeScreen 以空数据组合）
+    if (loading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        return@AnimatedVisibility
+        return
     }
 
     loadError?.let { err ->
@@ -90,6 +84,19 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
 
     val showBottomBar = currentRoute in tabRoutes
 
+    // 统一导航：Tab 路由用 Tab 切换逻辑（saveState/restoreState），子页用普通 push
+    val navigateTo: (String) -> Unit = { route ->
+        if (route in tabRoutes) {
+            nav.navigate(route) {
+                popUpTo(Destinations.Home.route) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        } else {
+            nav.navigate(route)
+        }
+    }
+
     Scaffold(
         bottomBar = {
             AnimatedVisibility(
@@ -100,13 +107,7 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 ModernNavigationBar(
                     tabs = tabs,
                     currentRoute = currentRoute,
-                    onNavigate = { route ->
-                        nav.navigate(route) {
-                            popUpTo(Destinations.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                    onNavigate = navigateTo
                 )
             }
         }
@@ -128,7 +129,7 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 popEnterTransition = { tabFadeIn() },
                 popExitTransition = { tabFadeOut() }
             ) {
-                HomeScreen(repo) { route -> nav.navigate(route) }
+                HomeScreen(repo, navigateTo)
             }
             composable(
                 Destinations.Category.route,
@@ -137,7 +138,7 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 popEnterTransition = { tabFadeIn() },
                 popExitTransition = { tabFadeOut() }
             ) {
-                CategoryScreen(repo) { route -> nav.navigate(route) }
+                CategoryScreen(repo, navigateTo)
             }
             composable(
                 Destinations.Plan.route,
@@ -146,7 +147,7 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 popEnterTransition = { tabFadeIn() },
                 popExitTransition = { tabFadeOut() }
             ) {
-                PlanScreen(repo) { route -> nav.navigate(route) }
+                PlanScreen(repo, navigateTo)
             }
             composable(
                 Destinations.Profile.route,
@@ -155,7 +156,7 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 popEnterTransition = { tabFadeIn() },
                 popExitTransition = { tabFadeOut() }
             ) {
-                ProfileScreen(repo) { route -> nav.navigate(route) }
+                ProfileScreen(repo, navigateTo)
             }
 
             // 子页 — 滑动动画
@@ -163,11 +164,11 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 SearchScreen(
                     repo = repo,
                     onBack = { nav.popBackStack() },
-                    onNavigate = { route -> nav.navigate(route) }
+                    onNavigate = navigateTo
                 )
             }
             composable(Destinations.Favorites.route) {
-                FavoritesScreen(repo) { route -> nav.navigate(route) }
+                FavoritesScreen(repo, navigateTo)
             }
             composable(Destinations.About.route) {
                 AboutScreen { nav.popBackStack() }
@@ -196,7 +197,7 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                     type = type,
                     key = key,
                     onBack = { nav.popBackStack() },
-                    onNavigate = { route -> nav.navigate(route) }
+                    onNavigate = navigateTo
                 )
             }
             composable(
