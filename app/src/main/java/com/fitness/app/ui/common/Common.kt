@@ -344,17 +344,3 @@ fun InfoRow(label: String, value: String) {
         )
     }
 }
-
-/** 渐变色块（用于 Hero 区背景） */
-@Composable
-fun gradientBrush(
-    vararg colors: Color,
-    angle: Float = 0f
-) = androidx.compose.ui.graphics.Brush.linearGradient(
-    colors = colors.toList(),
-    start = androidx.compose.ui.geometry.Offset(0f, 0f),
-    end = androidx.compose.ui.geometry.Offset(
-        1000f * androidx.compose.ui.geometry.cos(Math.toRadians(angle.toDouble())).toFloat(),
-        1000f * androidx.compose.ui.geometry.sin(Math.toRadians(angle.toDouble())).toFloat()
-    )
-)

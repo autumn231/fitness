@@ -1,8 +1,5 @@
 package com.fitness.app.ui.feature
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -129,12 +126,7 @@ fun HomeScreen(
         }
 
         // 最近浏览
-        AnimatedVisibility(
-            visible = recents.isNotEmpty(),
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        if (recents.isNotEmpty()) {
             item {
                 SectionHeader(
                     title = "最近浏览",
@@ -142,8 +134,6 @@ fun HomeScreen(
                     onAction = { onNavigate(Destinations.Favorites.route) }
                 )
             }
-        }
-        if (recents.isNotEmpty()) {
             items(recents.take(5), key = { it.exerciseId }) { recent ->
                 val ex = repo.byId(recent.exerciseId) ?: return@items
                 ExerciseCard(
