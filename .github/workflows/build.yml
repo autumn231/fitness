@@ -1,0 +1,64 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK
+        id: apk
+        run: |
+          mkdir -p artifacts
+          cp app/build/outputs/apk/release/app-release.apk artifacts/fitness-release.apk
+          echo "version=$(grep -oP 'versionName = \"\K[^\"]+' app/build.gradle.kts)" >> $GITHUB_OUTPUT
+          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          ts=$(date +'%Y%m%d-%H%M%S')
+          echo "tag=v${{ steps.apk.outputs.version }}-$ts" >> $GITHUB_OUTPUT
+
+      - name: Create Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: fitness ${{ steps.apk.outputs.version }} (${{ steps.apk.outputs.sha }})
+          body: |
+            ## 自动构建发布
+
+            由 GitHub Actions 在推送到 main 分支时自动构建。
+
+            - 提交: ${{ steps.apk.outputs.sha }}
+            - 版本: ${{ steps.apk.outputs.version }}
+
+            ### 安装
+
+            下载下方 `fitness-release.apk`，允许"未知来源应用安装"后点击安装即可。应用为离线应用，无需联网权限。
+          files: artifacts/fitness-release.apk
+          make_latest: true
