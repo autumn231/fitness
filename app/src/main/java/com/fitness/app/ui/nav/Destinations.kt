@@ -11,49 +11,49 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 
-sealed class Dest(val route: String) {
-    object Home : Dest("home")
-    object Category : Dest("category")
-    object Plan : Dest("plan")
-    object Profile : Dest("profile")
-    object Search : Dest("search")
-    object Favorites : Dest("favorites")
-    object Settings : Dest("settings")
-    object About : Dest("about")
+sealed class Destinations(val route: String) {
+    object Home : Destinations("home")
+    object Category : Destinations("category")
+    object Plan : Destinations("plan")
+    object Profile : Destinations("profile")
+    object Search : Destinations("search")
+    object Favorites : Destinations("favorites")
+    object Settings : Destinations("settings")
+    object About : Destinations("about")
 
-    object Exercise : Dest("exercise/{exerciseId}") {
+    object Exercise : Destinations("exercise/{exerciseId}") {
         fun create(id: String) = "exercise/$id"
     }
 
-    object List : Dest("list/{type}/{key}") {
+    object List : Destinations("list/{type}/{key}") {
         fun create(type: String, key: String) = "list/$type/$key"
     }
 
-    object PlanEditor : Dest("planEditor/{planId}") {
+    object PlanEditor : Destinations("planEditor/{planId}") {
         fun create(id: Long) = "planEditor/$id"
     }
 
-    object PlanDetail : Dest("planDetail/{planId}") {
+    object PlanDetail : Destinations("planDetail/{planId}") {
         fun create(id: Long) = "planDetail/$id"
     }
 
-    object Picker : Dest("picker/{planId}") {
+    object Picker : Destinations("picker/{planId}") {
         fun create(planId: Long) = "picker/$planId"
     }
 }
 
 data class TabItem(
-    val dest: Dest,
+    val dest: Destinations,
     val label: String,
     val icon: ImageVector,
     val selectedIcon: ImageVector
 )
 
 val tabs: List<TabItem> = listOf(
-    TabItem(Dest.Home, "首页", Icons.Outlined.Home, Icons.Filled.Home),
-    TabItem(Dest.Category, "分类", Icons.Outlined.Category, Icons.Filled.Category),
-    TabItem(Dest.Plan, "训练", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
-    TabItem(Dest.Profile, "我的", Icons.Outlined.Person, Icons.Filled.Person)
+    TabItem(Destinations.Home, "首页", Icons.Outlined.Home, Icons.Filled.Home),
+    TabItem(Destinations.Category, "分类", Icons.Outlined.Category, Icons.Filled.Category),
+    TabItem(Destinations.Plan, "训练", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
+    TabItem(Destinations.Profile, "我的", Icons.Outlined.Person, Icons.Filled.Person)
 )
 
 val tabRoutes: Set<String> = tabs.map { it.dest.route }.toSet()

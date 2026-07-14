@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,22 +80,22 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                androidx.compose.material3.NavigationBar {
+                NavigationBar {
                     tabs.forEach { tab ->
                         val selected = currentRoute == tab.dest.route
-                        androidx.compose.material3.NavigationBarItem(
+                        NavigationBarItem(
                             selected = selected,
                             onClick = {
                                 if (!selected) {
                                     nav.navigate(tab.dest.route) {
-                                        popUpTo(Dest.Home.route) { saveState = true }
+                                        popUpTo(Destinations.Home.route) { saveState = true }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
                                 }
                             },
                             icon = {
-                                androidx.compose.material3.Icon(
+                                Icon(
                                     imageVector = if (selected) tab.selectedIcon else tab.icon,
                                     contentDescription = tab.label
                                 )
@@ -106,46 +109,46 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
     ) { inner ->
         NavHost(
             navController = nav,
-            startDestination = Dest.Home.route,
+            startDestination = Destinations.Home.route,
             modifier = Modifier.padding(inner)
         ) {
-            composable(Dest.Home.route) {
+            composable(Destinations.Home.route) {
                 HomeScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Dest.Category.route) {
+            composable(Destinations.Category.route) {
                 CategoryScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Dest.Plan.route) {
+            composable(Destinations.Plan.route) {
                 PlanScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Dest.Profile.route) {
+            composable(Destinations.Profile.route) {
                 ProfileScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Dest.Search.route) {
+            composable(Destinations.Search.route) {
                 SearchScreen(
                     repo = repo,
                     onBack = { nav.popBackStack() },
                     onNavigate = { route -> nav.navigate(route) }
                 )
             }
-            composable(Dest.Favorites.route) {
+            composable(Destinations.Favorites.route) {
                 FavoritesScreen(repo) { route -> nav.navigate(route) }
             }
-            composable(Dest.About.route) {
+            composable(Destinations.About.route) {
                 AboutScreen { nav.popBackStack() }
             }
-            composable(Dest.Settings.route) {
+            composable(Destinations.Settings.route) {
                 SettingsScreen(repo) { nav.popBackStack() }
             }
             composable(
-                Dest.Exercise.route,
+                Destinations.Exercise.route,
                 arguments = listOf(navArgument("exerciseId") { type = NavType.StringType })
             ) { entry ->
                 val id = entry.arguments?.getString("exerciseId").orEmpty()
                 ExerciseDetailScreen(repo, id) { nav.popBackStack() }
             }
             composable(
-                Dest.List.route,
+                Destinations.List.route,
                 arguments = listOf(
                     navArgument("type") { type = NavType.StringType },
                     navArgument("key") { type = NavType.StringType }
@@ -162,7 +165,7 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 )
             }
             composable(
-                Dest.PlanEditor.route,
+                Destinations.PlanEditor.route,
                 arguments = listOf(navArgument("planId") { type = NavType.LongType })
             ) { entry ->
                 val planId = entry.arguments?.getLong("planId") ?: 0L
@@ -172,25 +175,25 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 )
             }
             composable(
-                Dest.PlanDetail.route,
+                Destinations.PlanDetail.route,
                 arguments = listOf(navArgument("planId") { type = NavType.LongType })
             ) { entry ->
                 val planId = entry.arguments?.getLong("planId") ?: 0L
                 PlanDetailScreen(repo, planId,
                     onBack = { nav.popBackStack() },
-                    onEdit = { nav.navigate(Dest.PlanEditor.create(planId)) },
-                    onPick = { nav.navigate(Dest.Picker.create(planId)) },
-                    onOpenExercise = { id -> nav.navigate(Dest.Exercise.create(id)) }
+                    onEdit = { nav.navigate(Destinations.PlanEditor.create(planId)) },
+                    onPick = { nav.navigate(Destinations.Picker.create(planId)) },
+                    onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) }
                 )
             }
             composable(
-                Dest.Picker.route,
+                Destinations.Picker.route,
                 arguments = listOf(navArgument("planId") { type = NavType.LongType })
             ) { entry ->
                 val planId = entry.arguments?.getLong("planId") ?: 0L
                 PickerScreen(repo, planId,
                     onBack = { nav.popBackStack() },
-                    onOpenExercise = { id -> nav.navigate(Dest.Exercise.create(id)) }
+                    onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) }
                 )
             }
         }

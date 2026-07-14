@@ -46,7 +46,11 @@ fun FavoritesScreen(
     val recents = recentsState.value
     var tab by remember { mutableIntStateOf(0) }
 
-    val items = if (tab == 0) favorites else recents
+    val items: List<String> = if (tab == 0) {
+        favorites.map { it.exerciseId }
+    } else {
+        recents.map { it.exerciseId }
+    }
 
     Scaffold(
         topBar = {
@@ -83,8 +87,8 @@ fun FavoritesScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(items, key = { it.exerciseId }) { entity ->
-                        val ex = repo.byId(entity.exerciseId) ?: return@items
+                    items(items, key = { it }) { exerciseId ->
+                        val ex = repo.byId(exerciseId) ?: return@items
                         ExerciseCard(
                             exercise = ex,
                             onClick = { onNavigate(Destinations.Exercise.create(ex.id)) }

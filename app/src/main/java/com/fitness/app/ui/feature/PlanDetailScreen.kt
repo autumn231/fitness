@@ -95,65 +95,66 @@ fun PlanDetailScreen(
             )
         }
     ) { inner ->
-        if (pw == null) {
-            Box(Modifier.fillMaxSize().padding(inner), contentAlignment = Alignment.Center) {
-                Text("加载中…")
+        when {
+            pw == null -> {
+                Box(Modifier.fillMaxSize().padding(inner), contentAlignment = Alignment.Center) {
+                    Text("加载中…")
+                }
             }
-            return
-        }
-
-        if (pw.items.isEmpty()) {
-            EmptyState(
-                icon = Icons.Outlined.FitnessCenter,
-                title = "计划还没有动作",
-                subtitle = "点击右下角按钮从动作库中挑选动作加入此计划",
-                modifier = Modifier.padding(inner)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                if (pw.plan.note.isNotBlank()) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Text(
-                                text = pw.plan.note,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(12.dp)
-                            )
+            pw.items.isEmpty() -> {
+                EmptyState(
+                    icon = Icons.Outlined.FitnessCenter,
+                    title = "计划还没有动作",
+                    subtitle = "点击右下角按钮从动作库中挑选动作加入此计划",
+                    modifier = Modifier.padding(inner)
+                )
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(inner),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (pw.plan.note.isNotBlank()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Text(
+                                    text = pw.plan.note,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
                         }
                     }
-                }
-                items(pw.items, key = { it.id }) { item ->
-                    val ex = repo.byId(item.exerciseId)
-                    PlanItemRow(
-                        item = item,
-                        exerciseName = ex?.displayName() ?: "未知动作",
-                        exerciseSubtitle = ex?.subtitle() ?: "",
-                        imagePath = ex?.image ?: "",
-                        onClick = { ex?.let { onOpenExercise(it.id) } },
-                        onDelete = {
-                            scope.launch { repo.deleteItem(item.id) }
-                        },
-                        onUpdateSets = { newSets ->
-                            scope.launch {
-                                repo.updateItem(item.copy(sets = newSets.coerceAtLeast(1)))
+                    items(pw.items, key = { it.id }) { item ->
+                        val ex = repo.byId(item.exerciseId)
+                        PlanItemRow(
+                            item = item,
+                            exerciseName = ex?.displayName() ?: "未知动作",
+                            exerciseSubtitle = ex?.subtitle() ?: "",
+                            imagePath = ex?.image ?: "",
+                            onClick = { ex?.let { onOpenExercise(it.id) } },
+                            onDelete = {
+                                scope.launch { repo.deleteItem(item.id) }
+                            },
+                            onUpdateSets = { newSets ->
+                                scope.launch {
+                                    repo.updateItem(item.copy(sets = newSets.coerceAtLeast(1)))
+                                }
+                            },
+                            onUpdateReps = { newReps ->
+                                scope.launch {
+                                    repo.updateItem(item.copy(reps = newReps))
+                                }
                             }
-                        },
-                        onUpdateReps = { newReps ->
-                            scope.launch {
-                                repo.updateItem(item.copy(reps = newReps))
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
