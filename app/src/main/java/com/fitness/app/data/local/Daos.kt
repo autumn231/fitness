@@ -87,3 +87,21 @@ interface CalendarDao {
     @Query("DELETE FROM calendar_plans")
     suspend fun clear()
 }
+
+@Dao
+interface FoodLogDao {
+    @Query("SELECT * FROM food_logs WHERE dateKey = :dateKey ORDER BY addedAt DESC")
+    fun observeByDate(dateKey: String): Flow<List<FoodLogEntity>>
+
+    @Insert
+    suspend fun insert(entity: FoodLogEntity): Long
+
+    @Query("DELETE FROM food_logs WHERE id = :id")
+    suspend fun remove(id: Long)
+
+    @Query("DELETE FROM food_logs WHERE dateKey = :dateKey")
+    suspend fun clearDate(dateKey: String)
+
+    @Query("DELETE FROM food_logs")
+    suspend fun clear()
+}

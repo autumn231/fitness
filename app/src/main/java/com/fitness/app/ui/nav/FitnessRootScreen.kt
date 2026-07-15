@@ -36,8 +36,11 @@ import com.fitness.app.ui.feature.CalendarScreen
 import com.fitness.app.ui.feature.CategoryScreen
 import com.fitness.app.ui.feature.ExerciseDetailScreen
 import com.fitness.app.ui.feature.FavoritesScreen
+import com.fitness.app.ui.feature.FoodDetailScreen
+import com.fitness.app.ui.feature.FoodListScreen
 import com.fitness.app.ui.feature.HomeScreen
 import com.fitness.app.ui.feature.ListScreen
+import com.fitness.app.ui.feature.NutritionScreen
 import com.fitness.app.ui.feature.PickerScreen
 import com.fitness.app.ui.feature.PlanDetailScreen
 import com.fitness.app.ui.feature.PlanEditorScreen
@@ -134,13 +137,13 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 HomeScreen(repo, navigateTo)
             }
             composable(
-                Destinations.Category.route,
+                Destinations.Nutrition.route,
                 enterTransition = { tabFadeIn() },
                 exitTransition = { tabFadeOut() },
                 popEnterTransition = { tabFadeIn() },
                 popExitTransition = { tabFadeOut() }
             ) {
-                CategoryScreen(repo, navigateTo)
+                NutritionScreen(repo, navigateTo)
             }
             composable(
                 Destinations.Training.route,
@@ -171,6 +174,13 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
             }
 
             // 子页 — 滑动动画
+            composable(Destinations.Category.route) {
+                CategoryScreen(
+                    repo = repo,
+                    onNavigate = navigateTo,
+                    onBack = { nav.popBackStack() }
+                )
+            }
             composable(Destinations.Plans.route) {
                 PlanScreen(repo, navigateTo)
             }
@@ -247,6 +257,29 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                     repo, planId,
                     onBack = { nav.popBackStack() },
                     onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) }
+                )
+            }
+            composable(
+                Destinations.FoodDetail.route,
+                arguments = listOf(navArgument("foodId") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("foodId").orEmpty()
+                FoodDetailScreen(
+                    repo = repo,
+                    foodId = id,
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable(
+                Destinations.FoodList.route,
+                arguments = listOf(navArgument("category") { type = NavType.StringType })
+            ) { entry ->
+                val category = entry.arguments?.getString("category").orEmpty()
+                FoodListScreen(
+                    repo = repo,
+                    category = category,
+                    onBack = { nav.popBackStack() },
+                    onOpenFood = { id -> nav.navigate(Destinations.FoodDetail.create(id)) }
                 )
             }
         }

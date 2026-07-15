@@ -11,9 +11,10 @@ import androidx.room.RoomDatabase
         RecentEntity::class,
         PlanEntity::class,
         PlanItemEntity::class,
-        CalendarPlanEntity::class
+        CalendarPlanEntity::class,
+        FoodLogEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -21,6 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recentDao(): RecentDao
     abstract fun planDao(): PlanDao
     abstract fun calendarDao(): CalendarDao
+    abstract fun foodLogDao(): FoodLogDao
 
     companion object {
         @Volatile

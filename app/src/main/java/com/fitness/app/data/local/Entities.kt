@@ -51,3 +51,21 @@ data class CalendarPlanEntity(
     val planId: Long,
     val createdAt: Long = System.currentTimeMillis()
 )
+
+/**
+ * 食物摄入日志：用户在某天吃了多少克某食物。
+ * dateKey 格式 yyyy-MM-dd；同一天可有多条记录。
+ */
+@Entity(tableName = "food_logs")
+data class FoodLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val dateKey: String,
+    val foodId: String,
+    val foodName: String,
+    val amountGram: Double,        // 实际摄入克数
+    val energy: Double,            // 该份能量 kcal = food.energy * amountGram / 100
+    val protein: Double,
+    val carbs: Double,
+    val fat: Double,
+    val addedAt: Long = System.currentTimeMillis()
+)

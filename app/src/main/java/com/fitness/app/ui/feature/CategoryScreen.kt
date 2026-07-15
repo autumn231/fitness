@@ -16,12 +16,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,7 +56,8 @@ private enum class CategoryTab(val title: String) {
 @Composable
 fun CategoryScreen(
     repo: ExerciseRepository,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    onBack: () -> Unit = {}
 ) {
     val exercises = repo.all()
     var tabIndex by remember { mutableIntStateOf(0) }
@@ -68,33 +75,44 @@ fun CategoryScreen(
         CategoryTab.TARGET -> "target"
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "动作分类",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp)
-        )
-        Text(
-            text = "选择一个分类查看对应动作",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
-        )
-        SecondaryTabRow(selectedTabIndex = tabIndex) {
-            tabs.forEachIndexed { i, tab ->
-                Tab(
-                    selected = tabIndex == i,
-                    onClick = { tabIndex = i },
-                    text = { Text(tab.title, fontWeight = if (tabIndex == i) FontWeight.SemiBold else FontWeight.Normal) }
-                )
-            }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("动作分类", fontWeight = FontWeight.SemiBold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                }
+            )
         }
+    ) { inner ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            item {
+                Text(
+                    text = "选择一个分类查看对应动作",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+            item {
+                SecondaryTabRow(selectedTabIndex = tabIndex) {
+                    tabs.forEachIndexed { i, tab ->
+                        Tab(
+                            selected = tabIndex == i,
+                            onClick = { tabIndex = i },
+                            text = { Text(tab.title, fontWeight = if (tabIndex == i) FontWeight.SemiBold else FontWeight.Normal) }
+                        )
+                    }
+                }
+            }
             items(groups, key = { it.keyEn }) { entry ->
                 CategoryRow(entry = entry) {
                     onNavigate(Destinations.List.create(typeKey, entry.keyEn))
