@@ -31,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -44,6 +45,12 @@ import com.fitness.app.ui.theme.CardShape
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    // 从 PackageInfo 读取版本名，避免每次发版都要手动改
+    val versionName = remember {
+        runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrDefault("unknown")
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -96,7 +103,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "版本 2.3",
+                text = "版本 $versionName",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -105,7 +112,7 @@ fun AboutScreen(onBack: () -> Unit) {
 
             AboutCard(title = "应用介绍") {
                 Text(
-                    text = "fitness 是一款完全离线的健身动作指导 APP，内置 1324 个动作的中文指导、动图演示与详细步骤。无需联网，随时随地查阅。",
+                    text = "fitness 是一款完全离线的健身动作指导与营养管理 APP，内置 1324 个动作的中文指导、动图演示与详细步骤，以及 1831 种中国常见食物的营养成分查询与每日热量管理。无需联网，随时随地查阅。",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -123,10 +130,33 @@ fun AboutScreen(onBack: () -> Unit) {
                 )
             }
 
-            AboutCard(title = "数据来源") {
+            AboutCard(title = "数据来源与版权声明") {
                 Text(
-                    text = "动作数据来自开源项目 hasaneyldrm/exercises-dataset，已做中文化映射处理。所有图片与 GIF 素材均随应用离线分发。",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "动作数据",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "来自开源项目 hasaneyldrm/exercises-dataset（MIT License），已做中文化映射处理。其中 images/ 与 videos/ 目录下的 GIF 媒体版权归 © Gym Visual (gymvisual.com) 所有，原作者已获书面许可以 180×180 分辨率分发。",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "食物营养数据",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "基于《中国食物成分表》标准版第6版（中国疾病预防控制中心营养与健康所编，北京大学医学出版社出版），由开源项目 Sanotsu/china-food-composition-data 通过 OCR / 视觉大模型识别整理。原书版权归出版社与编者所有，本项目以非商业用途使用。",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "本应用为非商业开源项目，源代码遵循 MIT License。如数据版权方有任何异议，请联系作者。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

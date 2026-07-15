@@ -14,8 +14,8 @@ android {
         applicationId = "com.fitness.app"
         minSdk = 31
         targetSdk = 35
-        versionCode = 8
-        versionName = "3.0"
+        versionCode = 9
+        versionName = "3.1"
         vectorDrawables { useSupportLibrary = true }
     }
 
