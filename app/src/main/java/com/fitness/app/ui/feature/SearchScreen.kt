@@ -35,6 +35,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +49,12 @@ import com.fitness.app.ui.common.EmptyState
 import com.fitness.app.ui.common.ExerciseCard
 import com.fitness.app.ui.nav.Destinations
 
+/** Set<String> 的 Saver，使筛选状态可被 rememberSaveable 保存 */
+private val StringSetSaver = listSaver<Set<String>, String>(
+    save = { it.toList() },
+    restore = { it.toSet() }
+)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
@@ -55,11 +63,11 @@ fun SearchScreen(
     onNavigate: (String) -> Unit
 ) {
     val exercises = repo.all()
-    var query by remember { mutableStateOf("") }
-    var selectedBodyParts by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var selectedEquipments by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var selectedTargets by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var showFilter by remember { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var selectedBodyParts by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(emptySet()) }
+    var selectedEquipments by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(emptySet()) }
+    var selectedTargets by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(emptySet()) }
+    var showFilter by rememberSaveable { mutableStateOf(false) }
 
     val allBodyParts = remember(exercises.size) { exercises.map { it.body_part }.distinct().sorted() }
     val allEquipments = remember(exercises.size) { exercises.map { it.equipment }.distinct().sorted() }

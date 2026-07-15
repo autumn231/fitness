@@ -18,9 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,20 +64,29 @@ fun PickerScreen(
 ) {
     val exercises = repo.all()
     var query by remember { mutableStateOf("") }
+    // 仅看收藏
+    var onlyFavorites by remember { mutableStateOf(false) }
     val planState = repo.observePlan(planId).collectAsStateWithLifecycle(initialValue = null)
+    val favoritesState = repo.observeFavorites().collectAsStateWithLifecycle(initialValue = emptyList())
     val existingIds = remember(planState.value) {
         planState.value?.items?.map { it.exerciseId }?.toSet() ?: emptySet()
     }
+    val favoriteIds = remember(favoritesState.value) {
+        favoritesState.value.map { it.exerciseId }.toSet()
+    }
     val scope = rememberCoroutineScope()
 
-    val results = remember(exercises.size, query) {
+    val results = remember(exercises.size, query, onlyFavorites, favoriteIds) {
         val q = query.trim().lowercase()
-        if (q.isBlank()) exercises
-        else exercises.filter { ex ->
-            ex.name.lowercase().contains(q) ||
-                    "${ex.equipment} ${ex.target} ${ex.body_part}".lowercase().contains(q) ||
-                    "${equipmentZh(ex.equipment)} ${bodyPartZh(ex.body_part)}".contains(q)
+        var list = if (onlyFavorites) exercises.filter { it.id in favoriteIds } else exercises
+        if (q.isNotBlank()) {
+            list = list.filter { ex ->
+                ex.name.lowercase().contains(q) ||
+                        "${ex.equipment} ${ex.target} ${ex.body_part}".lowercase().contains(q) ||
+                        "${equipmentZh(ex.equipment)} ${bodyPartZh(ex.body_part)}".contains(q)
+            }
         }
+        list
     }
 
     Scaffold(
@@ -104,80 +115,118 @@ fun PickerScreen(
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp)
             )
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // 仅看收藏 筛选 Chip
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(results, key = { it.id }) { ex ->
-                    val alreadyAdded = ex.id in existingIds
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = CardShape,
-                        color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                FilterChip(
+                    selected = onlyFavorites,
+                    onClick = { onlyFavorites = !onlyFavorites },
+                    label = { Text("仅看收藏") },
+                    leadingIcon = {
+                        if (onlyFavorites) {
+                            Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                )
+                Spacer(Modifier.width(8.dp))
+                if (onlyFavorites) {
+                    Text(
+                        text = "共 ${favoriteIds.size} 个收藏",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (results.isEmpty()) {
+                val msg = if (onlyFavorites) "收藏夹为空" else "未找到相关动作"
+                Text(
+                    text = msg,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(24.dp)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(results, key = { it.id }) { ex ->
+                        val alreadyAdded = ex.id in existingIds
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = CardShape,
+                            color = MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (alreadyAdded) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outlineVariant
+                            )
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(ImageShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                LocalAssetImage(
-                                    path = ex.image,
-                                    contentDescription = ex.displayName(),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = ex.displayName(),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = ex.name,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
-                                )
-                            }
-                            if (alreadyAdded) {
-                                Text(
-                                    text = "已添加",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(end = 8.dp)
-                                )
-                            } else {
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        val nextOrder = (planState.value?.items?.maxOfOrNull { it.sortOrder } ?: 0) + 1
-                                        repo.addItem(
-                                            PlanItemEntity(
-                                                planId = planId,
-                                                exerciseId = ex.id,
-                                                sortOrder = nextOrder
-                                            )
-                                        )
-                                    }
-                                }) {
-                                    Icon(
-                                        Icons.Filled.Add,
-                                        contentDescription = "加入计划",
-                                        tint = MaterialTheme.colorScheme.primary
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(ImageShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    LocalAssetImage(
+                                        path = ex.image,
+                                        contentDescription = ex.displayName(),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
                                     )
                                 }
+                                Spacer(Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = ex.displayName(),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = ex.name,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+                                if (alreadyAdded) {
+                                    Text(
+                                        text = "已添加",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    )
+                                } else {
+                                    IconButton(onClick = {
+                                        scope.launch {
+                                            val nextOrder = (planState.value?.items?.maxOfOrNull { it.sortOrder } ?: 0) + 1
+                                            repo.addItem(
+                                                PlanItemEntity(
+                                                    planId = planId,
+                                                    exerciseId = ex.id,
+                                                    sortOrder = nextOrder
+                                                )
+                                            )
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Filled.Add,
+                                            contentDescription = "加入计划",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                // 已添加/未添加 均可查看详情
                                 IconButton(onClick = { onOpenExercise(ex.id) }) {
                                     Icon(Icons.Outlined.Info, contentDescription = "查看详情")
                                 }
