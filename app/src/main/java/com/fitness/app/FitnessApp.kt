@@ -1,10 +1,8 @@
 package com.fitness.app
 
 import android.app.Application
-import android.os.Build
 import coil.ImageLoader
 import coil.ImageLoaderFactory
-import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.local.AppDatabase
@@ -24,11 +22,8 @@ class FitnessApp : Application(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
             .components {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    add(ImageDecoderDecoder.Factory())
-                } else {
-                    add(GifDecoder.Factory())
-                }
+                // minSdk 31，ImageDecoder 一定可用，GIF 动图直接走系统解码器
+                add(ImageDecoderDecoder.Factory())
             }
             .build()
 }

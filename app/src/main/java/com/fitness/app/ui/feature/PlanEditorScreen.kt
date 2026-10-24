@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +54,7 @@ fun PlanEditorScreen(
     var name by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var loadedExisting by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     if (!isNew) {
         val planState = repo.observePlan(planId).collectAsStateWithLifecycle(initialValue = null)
@@ -146,17 +149,32 @@ fun PlanEditorScreen(
             }
             if (!isNew && existing != null) {
                 OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            repo.deletePlan(planId)
-                            onSaved()
-                        }
-                    },
+                    onClick = { showDeleteDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("删除计划", color = MaterialTheme.colorScheme.error)
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除这个计划？") },
+            text = { Text("计划下的动作、以及日历里已安排的日期会一并移除，此操作无法撤销。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    scope.launch {
+                        repo.deletePlan(planId)
+                        onSaved()
+                    }
+                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            }
+        )
     }
 }

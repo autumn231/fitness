@@ -1,6 +1,7 @@
 package com.fitness.app.data
 
 import android.content.Context
+import androidx.room.withTransaction
 import com.fitness.app.data.local.AppDatabase
 import com.fitness.app.data.local.CalendarPlanEntity
 import com.fitness.app.data.local.FavoriteEntity
@@ -12,7 +13,12 @@ import com.fitness.app.data.local.RecentEntity
 import com.fitness.app.data.model.Exercise
 import com.fitness.app.data.model.Food
 import com.fitness.app.data.prefs.SettingsDataStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 
 /**
  * 仓库：内存中持有全部动作与食物（启动时一次性加载），并暴露 Room 收藏/最近/计划/食物日志 与设置。
@@ -36,17 +42,22 @@ class ExerciseRepository(
 
     val isLoaded: Boolean get() = loaded.isNotEmpty()
 
-    suspend fun load(): List<Exercise> {
+    /**
+     * 启动时一次性加载。exercises.json 有 16MB，解析必须离开主线程，
+     * 否则冷启动会在首帧阻塞 1~2 秒甚至触发 ANR。
+     */
+    suspend fun load(): List<Exercise> = withContext(Dispatchers.IO) {
         if (loaded.isEmpty()) {
             val list = AssetsLoader.loadExercises(context)
-            loaded = list
             byIdMap = list.associateBy { it.id }
+            loaded = list
         }
         if (foods.isEmpty()) {
-            foods = AssetsLoader.loadFoods(context)
-            foodByIdMap = foods.associateBy { it.id }
+            val list = AssetsLoader.loadFoods(context)
+            foodByIdMap = list.associateBy { it.id }
+            foods = list
         }
-        return loaded
+        loaded
     }
 
     fun all(): List<Exercise> = loaded
@@ -110,7 +121,18 @@ class ExerciseRepository(
 
     suspend fun updatePlan(plan: PlanEntity) = database.planDao().updatePlan(plan)
 
-    suspend fun deletePlan(id: Long) = database.planDao().deletePlan(id)
+    /**
+     * 删除计划时同步清掉它下面的动作与日历安排。
+     * 之前只删了 plans 表，plan_items / calendar_plans 变成孤儿数据，
+     * 日历里会一直显示"已删除的计划"。
+     */
+    suspend fun deletePlan(id: Long) {
+        database.withTransaction {
+            database.planDao().deleteItemsByPlan(id)
+            database.calendarDao().removeByPlan(id)
+            database.planDao().deletePlan(id)
+        }
+    }
 
     suspend fun addItem(item: PlanItemEntity): Long = database.planDao().insertItem(item)
 
@@ -134,10 +156,10 @@ class ExerciseRepository(
         database.foodLogDao().observeByDate(dateKey)
 
     /** 添加一条摄入记录：根据食物 id 与克数自动计算营养。 */
-    suspend fun addFoodLog(food: Food, amountGram: Double): Long {
+    suspend fun addFoodLog(food: Food, amountGram: Double, dateKey: String = DateKeys.today()): Long {
         val factor = amountGram / 100.0
         val entity = FoodLogEntity(
-            dateKey = todayKey(),
+            dateKey = dateKey,
             foodId = food.id,
             foodName = food.name,
             amountGram = amountGram,
@@ -153,9 +175,19 @@ class ExerciseRepository(
 
     suspend fun clearFoodLogs(dateKey: String) = database.foodLogDao().clearDate(dateKey)
 
-    /** yyyy-MM-dd（用设备本地时区）。 */
-    private fun todayKey(): String {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.CHINA)
-        return sdf.format(java.util.Date())
+    // ---------- 跨 Tab 的"去训练"请求 ----------
+    // 日历里点"去训练"时把计划 id 放进来，训练页消费后清空。
+    // 之前 Calendar 只是跳到 training Tab，计划根本没传过去，用户还得手动再选一次。
+    private val _requestedPlanId = MutableStateFlow<Long?>(null)
+    val requestedPlanId: StateFlow<Long?> = _requestedPlanId.asStateFlow()
+
+    fun requestPlan(planId: Long) {
+        _requestedPlanId.value = planId
+    }
+
+    fun consumeRequestedPlan(): Long? {
+        val id = _requestedPlanId.value
+        _requestedPlanId.value = null
+        return id
     }
 }

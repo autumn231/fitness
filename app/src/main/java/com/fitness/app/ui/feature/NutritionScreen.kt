@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -41,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +58,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fitness.app.data.DateKeys
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.local.FoodLogEntity
 import com.fitness.app.data.model.Food
@@ -65,9 +71,6 @@ import com.fitness.app.ui.nav.Destinations
 import com.fitness.app.ui.theme.CardShape
 import com.fitness.app.ui.theme.ChipShape
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +79,19 @@ fun NutritionScreen(
     onNavigate: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val todayKey = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
+
+    // 跨天回到前台时"今天"要跟着变，否则会一直显示昨天的记录、新记录也记到旧日期
+    var todayKey by remember { mutableStateOf(DateKeys.today()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                todayKey = DateKeys.today()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val tdeeState = repo.settings.tdee.collectAsStateWithLifecycle(initialValue = 0)
     val tdee = tdeeState.value
@@ -105,7 +120,9 @@ fun NutritionScreen(
     var showClearDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -584,6 +601,7 @@ private fun TdeeDialog(
     onSave: (Int) -> Unit
 ) {
     var text by remember { mutableStateOf(if (current > 0) current.toString() else "") }
+    var error by remember { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("设置每日能量消耗 (TDEE)") },
@@ -597,9 +615,14 @@ private fun TdeeDialog(
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { s -> text = s.filter { it.isDigit() }.take(5) },
+                    onValueChange = { s ->
+                        text = s.filter { it.isDigit() }.take(5)
+                        error = null
+                    },
                     label = { Text("每日消耗 (kcal)") },
                     singleLine = true,
+                    isError = error != null,
+                    supportingText = error?.let { { Text(it) } },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(14.dp)
                 )
@@ -607,8 +630,13 @@ private fun TdeeDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                val v = text.trim().toIntOrNull() ?: 0
-                if (v in 800..8000) onSave(v)
+                val v = text.trim().toIntOrNull()
+                // 之前超出范围直接静默不保存，用户以为点了没反应
+                when {
+                    v == null -> error = "请输入数字"
+                    v !in 800..8000 -> error = "请输入 800 ~ 8000 之间的数值"
+                    else -> onSave(v)
+                }
             }) { Text("保存") }
         },
         dismissButton = {

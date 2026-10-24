@@ -139,7 +139,6 @@ fun ExerciseDetailScreen(
         ) {
             // 大尺寸 GIF 动图（视差效果）
             item {
-                val scrollOffset = listState.firstVisibleItemScrollOffset.toFloat()
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -151,7 +150,11 @@ fun ExerciseDetailScreen(
                         contentDescription = exercise.displayName(),
                         modifier = Modifier
                             .fillMaxSize()
-                            .graphicsLayer { translationY = scrollOffset * 0.5f },
+                            // 在 graphicsLayer 的 lambda 里读取滚动偏移，
+                            // 把读取推迟到绘制阶段，避免滚动时每帧重组整页
+                            .graphicsLayer {
+                                translationY = listState.firstVisibleItemScrollOffset * 0.5f
+                            },
                         contentScale = ContentScale.Fit
                     )
                     // 底部渐变蒙版

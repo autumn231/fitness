@@ -1,5 +1,9 @@
 package com.fitness.app.ui.feature
 
+import android.content.Context
+import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.VibratorManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +49,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -80,52 +87,82 @@ fun TrainingScreen(
     repo: ExerciseRepository,
     onNavigate: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val plansState = repo.observePlans().collectAsStateWithLifecycle(initialValue = emptyList())
     val plans = plansState.value
 
-    // 当前选中计划 id（默认第一个）
-    var selectedPlanId by rememberSaveable(plans.firstOrNull()?.plan?.id) {
-        mutableLongStateOf(plans.firstOrNull()?.plan?.id ?: 0L)
+    // 当前选中计划 id
+    var selectedPlanId by rememberSaveable { mutableLongStateOf(0L) }
+
+    // 计划加载完成 / 计划被删除 / 从日历点"去训练"时校正选中项
+    LaunchedEffect(plans) {
+        val requested = repo.consumeRequestedPlan()
+        when {
+            requested != null && plans.any { it.plan.id == requested } -> selectedPlanId = requested
+            plans.isNotEmpty() && plans.none { it.plan.id == selectedPlanId } ->
+                selectedPlanId = plans.first().plan.id
+        }
     }
     val currentPlan = plans.firstOrNull { it.plan.id == selectedPlanId }
 
-    // 总用时
-    var totalSeconds by rememberSaveable { mutableLongStateOf(0L) }
+    // 总用时：用 SystemClock 计算真实流逝时间，避免 delay(1000) 累积漂移；
+    // 并用 rememberSaveable 保存起点，切 Tab / 转屏后可以接着走。
     var timerRunning by rememberSaveable { mutableStateOf(false) }
+    var accumulated by rememberSaveable { mutableLongStateOf(0L) }
+    var startedAt by rememberSaveable { mutableLongStateOf(0L) }
+    var totalSeconds by remember { mutableLongStateOf(0L) }
+
     LaunchedEffect(timerRunning) {
+        if (!timerRunning) return@LaunchedEffect
         while (timerRunning) {
-            delay(1000L)
-            totalSeconds += 1
+            totalSeconds = accumulated + (SystemClock.elapsedRealtime() - startedAt) / 1000
+            delay(200L)
         }
     }
 
-    // 组间歇
-    var restTotal by remember { mutableIntStateOf(90) }
+    // 组间歇：同样基于结束时间点倒计时
+    var restTotal by rememberSaveable { mutableIntStateOf(90) }
     var restRemaining by remember { mutableIntStateOf(0) }
-    var restRunning by remember { mutableStateOf(false) }
-    LaunchedEffect(restRunning) {
-        while (restRunning && restRemaining > 0) {
-            delay(1000L)
-            restRemaining -= 1
-            if (restRemaining <= 0) restRunning = false
+    var restRunning by rememberSaveable { mutableStateOf(false) }
+    var restEndAt by rememberSaveable { mutableLongStateOf(0L) }
+
+    LaunchedEffect(restRunning, restEndAt) {
+        if (!restRunning) return@LaunchedEffect
+        while (restRunning) {
+            val remainMs = restEndAt - SystemClock.elapsedRealtime()
+            restRemaining = ((remainMs + 999) / 1000).toInt().coerceAtLeast(0)
+            if (remainMs <= 0L) {
+                restRunning = false
+                // 间歇结束给个震动提醒，不然盯着屏幕才知道结束了
+                runCatching { vibrateOnce(context) }
+                break
+            }
+            delay(200L)
         }
     }
 
-    // 待办完成状态（按计划 id 记忆）
+    // 完成状态按计划记忆，切 Tab 回来不会清零
+    val completedSaver = listSaver<Set<Long>, Long>(
+        save = { it.toList() },
+        restore = { it.toSet() }
+    )
+    var completedSet by rememberSaveable(selectedPlanId, stateSaver = completedSaver) {
+        mutableStateOf(emptySet())
+    }
     val items = currentPlan?.items ?: emptyList()
-    val completed = remember(selectedPlanId) { mutableStateOf(setOf<Long>()) }
-    val completedSet = completed.value
 
     // 切换计划时重置计时与完成状态
     LaunchedEffect(selectedPlanId) {
-        totalSeconds = 0L
         timerRunning = false
+        accumulated = 0L
+        totalSeconds = 0L
         restRunning = false
         restRemaining = 0
-        completed.value = emptySet()
     }
 
     Scaffold(
+        // 底部导航栏高度由根 Scaffold 让出，避免重复内边距
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("训练", fontWeight = FontWeight.SemiBold) },
@@ -170,9 +207,18 @@ fun TrainingScreen(
                         running = timerRunning,
                         completed = completedSet.size,
                         total = items.size,
-                        onToggle = { timerRunning = !timerRunning },
+                        onToggle = {
+                            if (timerRunning) {
+                                accumulated = totalSeconds
+                                timerRunning = false
+                            } else {
+                                startedAt = SystemClock.elapsedRealtime()
+                                timerRunning = true
+                            }
+                        },
                         onReset = {
                             timerRunning = false
+                            accumulated = 0L
                             totalSeconds = 0L
                         }
                     )
@@ -187,14 +233,16 @@ fun TrainingScreen(
                         onPreset = { secs ->
                             restTotal = secs
                             restRemaining = secs
+                            restEndAt = SystemClock.elapsedRealtime() + secs * 1000L
                             restRunning = true
                         },
                         onToggle = {
-                            if (restRemaining <= 0) {
-                                restRemaining = restTotal
-                                restRunning = true
+                            if (restRunning) {
+                                restRunning = false
                             } else {
-                                restRunning = !restRunning
+                                if (restRemaining <= 0) restRemaining = restTotal
+                                restEndAt = SystemClock.elapsedRealtime() + restRemaining * 1000L
+                                restRunning = true
                             }
                         },
                         onReset = {
@@ -234,7 +282,7 @@ fun TrainingScreen(
                         imagePath = ex?.image ?: "",
                         done = item.id in completedSet,
                         onToggleDone = {
-                            completed.value = if (item.id in completedSet) {
+                            completedSet = if (item.id in completedSet) {
                                 completedSet - item.id
                             } else {
                                 completedSet + item.id
@@ -555,4 +603,12 @@ private fun formatClock(seconds: Long): String {
     val m = (s % 3600) / 60
     val sec = s % 60
     return "%02d:%02d:%02d".format(h, m, sec)
+}
+
+/** 组间歇结束震动提醒（minSdk 31，直接用 VibratorManager）。 */
+private fun vibrateOnce(context: Context) {
+    val vibrator = (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+        ?.defaultVibrator ?: return
+    if (!vibrator.hasVibrator()) return
+    vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 320, 180, 320), -1))
 }

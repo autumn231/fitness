@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -58,13 +61,19 @@ fun ProfileScreen(
         .collectAsStateWithLifecycle(initialValue = emptyList()).value.size
 
     Scaffold(
+        // 底部导航栏的高度已由根 Scaffold 让出，这里不再重复加系统栏内边距
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(title = { Text("我的", fontWeight = FontWeight.SemiBold) })
         }
     ) { inner ->
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(inner)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 16.dp)
+        ) {
 
             // 用户卡片（顶部渐变）
             Box(

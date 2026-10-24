@@ -7,16 +7,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -47,9 +51,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fitness.app.data.DateKeys
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.local.CalendarPlanEntity
 import com.fitness.app.data.local.PlanWithItems
+import com.fitness.app.ui.nav.Destinations
 import com.fitness.app.ui.theme.CardShape
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -81,6 +87,8 @@ fun CalendarScreen(
     val selectedPlan = plans.firstOrNull { it.plan.id == selectedEntry?.planId }
 
     Scaffold(
+        // 底部导航栏高度由根 Scaffold 让出，避免重复内边距
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(title = { Text("日历", fontWeight = FontWeight.SemiBold) })
         }
@@ -127,8 +135,10 @@ fun CalendarScreen(
                             }
                         },
                         onStartTraining = {
-                            selectedPlan?.let {
-                                onNavigate("training")
+                            selectedPlan?.let { pw ->
+                                // 把当天安排的固定计划带到训练页，避免用户进去还要手动再选一遍
+                                repo.requestPlan(pw.plan.id)
+                                onNavigate(Destinations.Training.route)
                             }
                         }
                     )
@@ -146,7 +156,7 @@ fun CalendarScreen(
             }
 
             val upcoming = calendarPlans
-                .filter { LocalDate.parse(it.dateKey) >= LocalDate.now() }
+                .filter { DateKeys.parse(it.dateKey)?.let { d -> !d.isBefore(LocalDate.now()) } == true }
                 .sortedBy { it.dateKey }
             if (upcoming.isEmpty()) {
                 item {
@@ -171,8 +181,10 @@ fun CalendarScreen(
                         planName = plan?.plan?.name ?: "已删除的计划",
                         itemCount = plan?.items?.size ?: 0,
                         onClick = {
-                            selectedDate = LocalDate.parse(entry.dateKey)
-                            currentMonth = YearMonth.from(selectedDate!!)
+                            DateKeys.parse(entry.dateKey)?.let { date ->
+                                selectedDate = date
+                                currentMonth = YearMonth.from(date)
+                            }
                         }
                     )
                 }
@@ -461,7 +473,7 @@ private fun UpcomingRow(
     itemCount: Int,
     onClick: () -> Unit
 ) {
-    val date = LocalDate.parse(dateKey)
+    val date = DateKeys.parse(dateKey) ?: return
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -525,7 +537,11 @@ private fun PlanPickerDialog(
             if (plans.isEmpty()) {
                 Text("还没有计划，请先创建训练计划。")
             } else {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
                     plans.forEach { pw ->
                         Surface(
                             modifier = Modifier

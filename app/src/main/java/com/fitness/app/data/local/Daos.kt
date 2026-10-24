@@ -66,6 +66,9 @@ interface PlanDao {
     @Query("DELETE FROM plan_items WHERE id = :itemId")
     suspend fun deleteItem(itemId: Long)
 
+    @Query("DELETE FROM plan_items WHERE planId = :planId")
+    suspend fun deleteItemsByPlan(planId: Long)
+
     @Query("DELETE FROM plans WHERE id = :id")
     suspend fun deletePlan(id: Long)
 }
@@ -83,6 +86,9 @@ interface CalendarDao {
 
     @Query("DELETE FROM calendar_plans WHERE dateKey = :dateKey")
     suspend fun remove(dateKey: String)
+
+    @Query("DELETE FROM calendar_plans WHERE planId = :planId")
+    suspend fun removeByPlan(planId: Long)
 
     @Query("DELETE FROM calendar_plans")
     suspend fun clear()

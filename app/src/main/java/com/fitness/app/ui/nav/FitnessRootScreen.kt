@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
@@ -103,6 +104,9 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
     }
 
     Scaffold(
+        // 系统栏内边距交给各个页面自己处理（页面里都有 TopAppBar / statusBarsPadding），
+        // 这里再套一层会让页面顶部多出一条状态栏高度的空白。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             AnimatedVisibility(
                 visible = showBottomBar,

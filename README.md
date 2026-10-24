@@ -70,21 +70,49 @@ app/src/main/java/com/fitness/app/
 
 ## 构建
 
-需要 JDK 17 与 Android SDK（compileSdk 35）。
+需要 JDK 17 与 Android SDK（compileSdk 35、build-tools 35.0.0）。
 
 ```bash
 # Debug APK
 ./gradlew :app:assembleDebug
 
-# Release APK
+# Release APK（开启 R8 + 资源压缩，只打包 arm64-v8a）
 ./gradlew :app:assembleRelease
 ```
 
-产物路径：`app/build/outputs/apk/`
+产物路径：`app/build/outputs/apk/release/app-release.apk`
+
+### 发布签名
+
+Release 包使用独立签名密钥，避免每次构建签名不同导致无法覆盖安装。签名信息从仓库根目录的 `keystore.properties` 读取（**该文件不入库**）：
+
+```properties
+storeFile=/absolute/path/to/fitness-release.jks
+storePassword=******
+keyAlias=fitness
+keyPassword=******
+```
+
+没有该文件时会自动回退到 debug 签名，方便在任意机器上验证构建，但这种包不能用于正式发布。
 
 ## 发布
 
-推送到 `main` 分支会自动触发 GitHub Actions 工作流（`.github/workflows/build.yml`）构建 Release APK 并发布到 GitHub Releases。发布说明会从 [CHANGELOG.md](CHANGELOG.md) 自动提取对应版本内容。
+发布不再依赖 GitHub Actions，由构建机本地脚本完成（构建 → 打 tag → 上传到 GitHub Release）：
+
+```bash
+./scripts/release.sh              # 构建并发布
+./scripts/release.sh --build-only # 只构建，产物在 dist/
+./scripts/release.sh --draft      # 发布为 draft
+```
+
+脚本会强制：
+
+- release 构建（R8 混淆 + 资源压缩），不会误发 debug 包
+- 只保留 `arm64-v8a` 单一 ABI，产物名 `fitness-v<version>-arm64-v8a.apk`
+- 校验产物 ABI 与签名后才上传
+- Release Notes 从 [CHANGELOG.md](CHANGELOG.md) 自动提取对应版本内容
+
+发布前请先提升 `app/build.gradle.kts` 中的 `versionCode` 与 `versionName`。
 
 ## 数据来源与版权声明
 
