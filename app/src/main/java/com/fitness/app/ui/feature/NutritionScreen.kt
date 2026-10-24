@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -130,6 +131,8 @@ fun NutritionScreen(
         item {
             TopAppBar(
                 title = { Text("营养", fontWeight = FontWeight.SemiBold) },
+                // 外层 LazyColumn 已经加了 statusBarsPadding，这里不要再叠加一次
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 actions = {
                     IconButton(onClick = { showTdeeDialog = true }) {
                         Icon(Icons.Outlined.Settings, contentDescription = "设置每日消耗")
