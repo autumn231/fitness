@@ -110,7 +110,8 @@ fun TrainingScreen(
     var timerRunning by rememberSaveable { mutableStateOf(false) }
     var accumulated by rememberSaveable { mutableLongStateOf(0L) }
     var startedAt by rememberSaveable { mutableLongStateOf(0L) }
-    var totalSeconds by remember { mutableLongStateOf(0L) }
+    // 暂停状态下切 Tab 回来要能恢复已计时的读数，所以也要保存
+    var totalSeconds by rememberSaveable { mutableLongStateOf(0L) }
 
     LaunchedEffect(timerRunning) {
         if (!timerRunning) return@LaunchedEffect
@@ -122,7 +123,7 @@ fun TrainingScreen(
 
     // 组间歇：同样基于结束时间点倒计时
     var restTotal by rememberSaveable { mutableIntStateOf(90) }
-    var restRemaining by remember { mutableIntStateOf(0) }
+    var restRemaining by rememberSaveable { mutableIntStateOf(0) }
     var restRunning by rememberSaveable { mutableStateOf(false) }
     var restEndAt by rememberSaveable { mutableLongStateOf(0L) }
 
