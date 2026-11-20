@@ -47,4 +47,3 @@ fun effectiveTdee(override: Int, profile: ProfileEntity?, weightKg: Double?): In
 
 /** 一次训练的估算消耗：力量训练约 5 kcal/分钟（中等强度经验值，界面上标注「估算」）。 */
 fun estimateBurnKcal(durationSec: Long): Int = (durationSec / 60.0 * 5.0).toInt()
-}
