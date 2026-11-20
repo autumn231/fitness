@@ -121,11 +121,11 @@ fun AboutScreen(onBack: () -> Unit) {
                 ContactRow(label = "作者", value = "高翔")
                 Spacer(Modifier.height(8.dp))
                 ContactRow(
-                    label = "微信",
-                    value = "gx13598483383",
+                    label = "邮箱",
+                    value = "wlong9892@gmail.com",
                     onCopy = {
-                        copyToClipboard(context, "gx13598483383")
-                        Toast.makeText(context, "已复制微信号", Toast.LENGTH_SHORT).show()
+                        copyToClipboard(context, "wlong9892@gmail.com")
+                        Toast.makeText(context, "已复制邮箱", Toast.LENGTH_SHORT).show()
                     }
                 )
             }
