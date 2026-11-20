@@ -151,9 +151,6 @@ class ExerciseRepository(
     // ---------- 日历安排 ----------
     fun observeCalendarPlans(): Flow<List<CalendarPlanEntity>> = database.calendarDao().observeAll()
 
-    suspend fun getCalendarPlan(dateKey: String): CalendarPlanEntity? =
-        database.calendarDao().get(dateKey)
-
     suspend fun setCalendarPlan(dateKey: String, planId: Long) =
         database.calendarDao().upsert(CalendarPlanEntity(dateKey = dateKey, planId = planId))
 
@@ -162,6 +159,10 @@ class ExerciseRepository(
     // ---------- 食物摄入日志 ----------
     fun observeFoodLogs(dateKey: String): Flow<List<FoodLogEntity>> =
         database.foodLogDao().observeByDate(dateKey)
+
+    /** 全部摄入记录（趋势统计用）。 */
+    fun observeAllFoodLogs(): Flow<List<FoodLogEntity>> =
+        database.foodLogDao().observeAll()
 
     /** 添加一条摄入记录：根据食物 id 与克数自动计算营养。 */
     suspend fun addFoodLog(

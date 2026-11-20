@@ -78,9 +78,6 @@ interface CalendarDao {
     @Query("SELECT * FROM calendar_plans ORDER BY dateKey ASC")
     fun observeAll(): Flow<List<CalendarPlanEntity>>
 
-    @Query("SELECT * FROM calendar_plans WHERE dateKey = :dateKey")
-    suspend fun get(dateKey: String): CalendarPlanEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: CalendarPlanEntity)
 
@@ -105,6 +102,10 @@ interface FoodLogDao {
     /** 最近记录（供「最近/最常吃」聚合）：按时间倒序取最近 N 条。 */
     @Query("SELECT * FROM food_logs ORDER BY addedAt DESC LIMIT :limit")
     suspend fun recent(limit: Int = 300): List<FoodLogEntity>
+
+    /** 全部记录（趋势统计按天聚合用）。 */
+    @Query("SELECT * FROM food_logs ORDER BY dateKey ASC, addedAt ASC")
+    fun observeAll(): Flow<List<FoodLogEntity>>
 
     @Insert
     suspend fun insert(entity: FoodLogEntity): Long
@@ -220,9 +221,6 @@ interface WeightDao {
 
     @Query("SELECT * FROM weight_logs ORDER BY dateKey DESC LIMIT 1")
     fun observeLatest(): Flow<WeightLogEntity?>
-
-    @Query("SELECT * FROM weight_logs ORDER BY dateKey DESC LIMIT 1")
-    suspend fun latest(): WeightLogEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: WeightLogEntity)

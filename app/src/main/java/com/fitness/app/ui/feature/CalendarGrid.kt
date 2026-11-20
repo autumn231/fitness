@@ -1,0 +1,366 @@
+package com.fitness.app.ui.feature
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.fitness.app.ui.common.BorderedCard
+import com.fitness.app.ui.theme.CardShape
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
+
+/** 月份选择器：左右箭头 + 年月显示 */
+@Composable
+fun MonthSelector(
+    yearMonth: YearMonth,
+    onPrev: () -> Unit,
+    onNext: () -> Unit
+) {
+    BorderedCard {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onPrev) {
+                Icon(Icons.Filled.ChevronLeft, contentDescription = "上个月")
+            }
+            Text(
+                text = "${yearMonth.year}年${yearMonth.monthValue}月",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+            IconButton(onClick = onNext) {
+                Icon(Icons.Filled.ChevronRight, contentDescription = "下个月")
+            }
+        }
+    }
+}
+
+/** 日历网格：星期表头 + 当月日期 */
+@Composable
+fun CalendarGrid(
+    yearMonth: YearMonth,
+    selectedDate: LocalDate?,
+    scheduledDates: Set<String>,
+    finishedDates: Set<String>,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val today = LocalDate.now()
+    val firstDay = yearMonth.atDay(1)
+    // 周一为一周开始
+    val startOffset = (firstDay.dayOfWeek.value - 1)
+    val daysInMonth = yearMonth.lengthOfMonth()
+    val dateKeyFormatter = DateTimeFormatter.ISO_DATE
+
+    BorderedCard {
+        Column(modifier = Modifier.padding(8.dp)) {
+            // 星期表头
+            val weekDays = listOf(
+                DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY
+            )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                weekDays.forEach { dow ->
+                    Text(
+                        text = dow.getDisplayName(TextStyle.NARROW, Locale.CHINESE),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f).padding(vertical = 6.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            // 日期网格
+            val totalCells = startOffset + daysInMonth
+            val rows = (totalCells + 6) / 7
+            for (row in 0 until rows) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (col in 0..6) {
+                        val index = row * 7 + col
+                        val day = index - startOffset + 1
+                        Box(modifier = Modifier.weight(1f).aspectRatio(1f)) {
+                            if (day in 1..daysInMonth) {
+                                val date = yearMonth.atDay(day)
+                                val dateKey = date.format(dateKeyFormatter)
+                                val isSelected = date == selectedDate
+                                val isToday = date == today
+                                val hasSchedule = dateKey in scheduledDates
+                                val isFinished = dateKey in finishedDates
+                                CalendarDayCell(
+                                    day = day,
+                                    isToday = isToday,
+                                    isSelected = isSelected,
+                                    hasSchedule = hasSchedule,
+                                    isFinished = isFinished,
+                                    onClick = { onDateSelected(date) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarDayCell(
+    day: Int,
+    isToday: Boolean,
+    isSelected: Boolean,
+    hasSchedule: Boolean,
+    isFinished: Boolean,
+    onClick: () -> Unit
+) {
+    val bgColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        isToday -> MaterialTheme.colorScheme.primaryContainer
+        else -> Color.Transparent
+    }
+    val fgColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        isToday -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(2.dp)
+            .clip(CircleShape)
+            .background(bgColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = day.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = fgColor
+            )
+            if (isFinished) {
+                // 已完成：绿色对勾（与「已排计划」的圆点区分）
+                Text(
+                    text = "✓",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else Color(0xFF2E7D32)
+                )
+            } else if (hasSchedule) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.primary
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectedDateCard(
+    date: LocalDate,
+    planName: String?,
+    planItemCount: Int,
+    finishedSummary: String?,
+    onSetPlan: () -> Unit,
+    onRemove: () -> Unit,
+    onStartTraining: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = CardShape,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "${date.monthValue}月${date.dayOfMonth}日 · ${
+                    date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.CHINESE)
+                }",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.height(10.dp))
+            if (finishedSummary != null) {
+                Text(
+                    text = "✓ $finishedSummary",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2E7D32)
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            if (planName != null) {
+                Text(
+                    text = "计划：$planName",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "共 $planItemCount 个动作",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onStartTraining),
+                        shape = CardShape,
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Text(
+                            text = "去训练",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 10.dp)
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onSetPlan),
+                        shape = CardShape,
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Text(
+                            text = "更换计划",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 10.dp)
+                        )
+                    }
+                    IconButton(onClick = onRemove) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "移除安排",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = "当天暂无训练安排",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onSetPlan),
+                    shape = CardShape,
+                    color = MaterialTheme.colorScheme.primary
+                ) {
+                    Text(
+                        text = "为这一天安排训练计划",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UpcomingRow(
+    dateKey: String,
+    planName: String,
+    itemCount: Int,
+    onClick: () -> Unit
+) {
+    val date = com.fitness.app.data.DateKeys.parse(dateKey) ?: return
+    BorderedCard(onClick = onClick) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "${date.dayOfMonth}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = planName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+                Text(
+                    text = "${date.monthValue}月${date.dayOfMonth}日 · $itemCount 个动作",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.Outlined.CalendarMonth,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}

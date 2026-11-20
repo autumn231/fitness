@@ -29,10 +29,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -42,15 +38,18 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitness.app.data.DateKeys
 import com.fitness.app.data.ExerciseRepository
+import com.fitness.app.data.TrendConclusion
 import com.fitness.app.data.local.WeightLogEntity
 import com.fitness.app.ui.common.EmptyState
-import kotlinx.coroutines.launch
+import com.fitness.app.ui.viewmodel.WeightViewModel
+import com.fitness.app.ui.viewmodel.repoViewModelFactory
 
 /**
- * 体重进度页：最新体重 + 趋势折线（最近 90 条）+ 历史列表（点按改克数式的编辑、删除）。
- * 蓝图 v2 第 2 期：体重落库、日记页卡片点进此处。
+ * 体重进度页：最新体重 + 趋势结论卡（第 4 期）+ 趋势折线（最近 90 条）+ 历史列表。
+ * 状态在 WeightViewModel（第 3 期迁出），本文件只做渲染。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,11 +57,12 @@ fun WeightScreen(
     repo: ExerciseRepository,
     onBack: () -> Unit
 ) {
-    val weights by repo.observeWeights().collectAsStateWithLifecycle(initialValue = emptyList())
-    val scope = rememberCoroutineScope()
-    var showAdd by remember { mutableStateOf(false) }
-    var editTarget by remember { mutableStateOf<WeightLogEntity?>(null) }
-    var deleteTarget by remember { mutableStateOf<WeightLogEntity?>(null) }
+    val vm: WeightViewModel = viewModel(factory = repoViewModelFactory { WeightViewModel(repo) })
+    val weights by vm.weights.collectAsStateWithLifecycle()
+    val trend by vm.trend.collectAsStateWithLifecycle()
+    val showAdd by vm.showAdd.collectAsStateWithLifecycle()
+    val editTarget by vm.editTarget.collectAsStateWithLifecycle()
+    val deleteTarget by vm.deleteTarget.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -76,7 +76,7 @@ fun WeightScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAdd = true }) {
+            FloatingActionButton(onClick = { vm.setShowAdd(true) }) {
                 Icon(Icons.Filled.Add, contentDescription = "记体重")
             }
         }
@@ -147,6 +147,9 @@ fun WeightScreen(
                     }
                 }
                 item {
+                    WeightTrendConclusionCard(trend)
+                }
+                item {
                     Text(
                         "历史记录",
                         style = MaterialTheme.typography.titleSmall,
@@ -154,7 +157,7 @@ fun WeightScreen(
                     )
                 }
                 items(weights.reversed(), key = { it.dateKey }) { entry ->
-                    Card(onClick = { editTarget = entry }) {
+                    Card(onClick = { vm.openEdit(entry) }) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -173,7 +176,7 @@ fun WeightScreen(
                                 "${formatKg(entry.weightKg)} kg",
                                 fontWeight = FontWeight.SemiBold
                             )
-                            IconButton(onClick = { deleteTarget = entry }) {
+                            IconButton(onClick = { vm.openDelete(entry) }) {
                                 Icon(
                                     Icons.Filled.Delete,
                                     contentDescription = "删除",
@@ -191,39 +194,63 @@ fun WeightScreen(
     if (showAdd) {
         WeightEntryDialog(
             initialKg = weights.lastOrNull()?.weightKg,
-            onDismiss = { showAdd = false },
-            onConfirm = { key, kg ->
-                scope.launch { repo.setWeight(key, kg) }
-                showAdd = false
-            }
+            onDismiss = { vm.setShowAdd(false) },
+            onConfirm = { key, kg -> vm.saveWeight(key, kg) }
         )
     }
     editTarget?.let { entry ->
         WeightEntryDialog(
             date = DateKeys.parse(entry.dateKey) ?: java.time.LocalDate.now(),
             initialKg = entry.weightKg,
-            onDismiss = { editTarget = null },
-            onConfirm = { key, kg ->
-                scope.launch { repo.setWeight(key, kg) }
-                editTarget = null
-            }
+            onDismiss = { vm.dismissEdit() },
+            onConfirm = { key, kg -> vm.saveWeight(key, kg) }
         )
     }
     deleteTarget?.let { entry ->
         AlertDialog(
-            onDismissRequest = { deleteTarget = null },
+            onDismissRequest = { vm.dismissDelete() },
             title = { Text("删除这条体重记录？") },
             text = { Text("${entry.dateKey}：${formatKg(entry.weightKg)} kg") },
             confirmButton = {
-                TextButton(onClick = {
-                    scope.launch { repo.removeWeight(entry.dateKey) }
-                    deleteTarget = null
-                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { vm.confirmDelete() }) {
+                    Text("删除", color = MaterialTheme.colorScheme.error)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("取消") }
+                TextButton(onClick = { vm.dismissDelete() }) { Text("取消") }
             }
         )
+    }
+}
+
+/** 趋势结论卡（第 4 期）：近 90 天 vs 长期均值给方向结论，数据不足时显示空状态文案。 */
+@Composable
+private fun WeightTrendConclusionCard(trend: TrendConclusion) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                "趋势结论 · 近 90 天 vs 长期",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                trend.headline,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                trend.detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+            )
+        }
     }
 }
 

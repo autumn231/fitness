@@ -35,4 +35,16 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setTdee(kcal: Int) {
         context.dataStore.edit { it[tdeeKey] = kcal }
     }
+
+    private val homeCardsKey = stringPreferencesKey("home_cards_config")
+
+    /**
+     * 今日页概览卡片配置（顺序 + 可见性），序列化为 "id:1,id:0,..."；
+     * 空字符串表示从未设置，用默认配置。只存设置层，不进 Room。
+     */
+    val homeCardsConfig: Flow<String> = context.dataStore.data.map { it[homeCardsKey] ?: "" }
+
+    suspend fun setHomeCardsConfig(value: String) {
+        context.dataStore.edit { it[homeCardsKey] = value }
+    }
 }
