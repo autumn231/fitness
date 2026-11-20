@@ -48,9 +48,19 @@ sealed class Destinations(val route: String) {
         fun create(planId: Long) = "picker/$planId"
     }
 
-    object FoodDetail : Destinations("food/{foodId}") {
-        fun create(id: String) = "food/$id"
+    object FoodDetail : Destinations("food/{foodId}?date={date}&meal={meal}") {
+        fun create(id: String, date: String = "", meal: String = ""): String {
+            val base = "food/$id"
+            return if (date.isBlank() && meal.isBlank()) base else "$base?date=$date&meal=$meal"
+        }
     }
+
+    object AddFood : Destinations("addFood/{dateKey}/{mealIndex}") {
+        fun create(dateKey: String, mealIndex: Int) = "addFood/$dateKey/$mealIndex"
+    }
+
+    object Weight : Destinations("weight")
+    object ProfileEdit : Destinations("profileEdit")
 
     object FoodList : Destinations("foodList/{category}") {
         fun create(category: String) = "foodList/$category"
@@ -64,9 +74,9 @@ data class TabItem(
     val selectedIcon: ImageVector
 )
 
-// 5 Tab：首页 / 营养 / 训练(正中间) / 日历 / 我的
+// 5 Tab：今日 / 营养 / 训练(正中间) / 日历 / 我的
 val tabs: List<TabItem> = listOf(
-    TabItem(Destinations.Home, "首页", Icons.Outlined.Home, Icons.Filled.Home),
+    TabItem(Destinations.Home, "今日", Icons.Outlined.Home, Icons.Filled.Home),
     TabItem(Destinations.Nutrition, "营养", Icons.Outlined.LocalDining, Icons.Filled.LocalDining),
     TabItem(Destinations.Training, "训练", Icons.Outlined.PlayCircle, Icons.Filled.PlayCircle),
     TabItem(Destinations.Calendar, "日历", Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth),

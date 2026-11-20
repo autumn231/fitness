@@ -19,10 +19,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.LocalDining
 import androidx.compose.material.icons.outlined.RestaurantMenu
@@ -49,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +59,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -65,6 +67,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fitness.app.data.DateKeys
 import com.fitness.app.data.ExerciseRepository
+import com.fitness.app.data.Meals
+import com.fitness.app.data.computeTdee
+import com.fitness.app.data.effectiveTdee
 import com.fitness.app.data.local.FoodLogEntity
 import com.fitness.app.data.model.Food
 import com.fitness.app.ui.common.EmptyState
@@ -72,7 +77,15 @@ import com.fitness.app.ui.nav.Destinations
 import com.fitness.app.ui.theme.CardShape
 import com.fitness.app.ui.theme.ChipShape
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
+/**
+ * 营养页：食物库（搜索/分类）+ 按日期回看的摄入记录（按餐次分组）。
+ * 搜索状态用 rememberSaveable 保存，从食物详情返回不丢现场；
+ * 每日总账的主场在「今日」页，这里保留同口径的汇总卡方便对照。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NutritionScreen(
@@ -81,67 +94,72 @@ fun NutritionScreen(
 ) {
     val scope = rememberCoroutineScope()
 
-    // 跨天回到前台时"今天"要跟着变，否则会一直显示昨天的记录、新记录也记到旧日期
-    var todayKey by remember { mutableStateOf(DateKeys.today()) }
+    // 查看日期：默认今天，可前后翻看/补记；停在"今天"时跨天自动跟随
+    var viewedEpochDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
+    var followingToday by rememberSaveable { mutableStateOf(true) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                todayKey = DateKeys.today()
+            if (event == Lifecycle.Event.ON_RESUME && followingToday) {
+                viewedEpochDay = LocalDate.now().toEpochDay()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+    val viewedDate = LocalDate.ofEpochDay(viewedEpochDay)
+    val isToday = viewedDate == LocalDate.now()
+    val dateKey = DateKeys.of(viewedDate)
 
-    val tdeeState = repo.settings.tdee.collectAsStateWithLifecycle(initialValue = 0)
-    val tdee = tdeeState.value
-    val logsState = repo.observeFoodLogs(todayKey)
+    val tdeeOverride by repo.settings.tdee.collectAsStateWithLifecycle(initialValue = 0)
+    val profile by repo.observeProfile().collectAsStateWithLifecycle(initialValue = null)
+    val latestWeight by repo.observeLatestWeight().collectAsStateWithLifecycle(initialValue = null)
+    val budget = effectiveTdee(tdeeOverride, profile, latestWeight?.weightKg)
+
+    val logs by repo.observeFoodLogs(dateKey)
         .collectAsStateWithLifecycle(initialValue = emptyList())
-    val logs = logsState.value
 
     val allFoods = remember { repo.allFoods() }
     val categories = remember(allFoods.size) { repo.foodCategories() }
 
-    // 营养汇总
     val totalEnergy = logs.sumOf { it.energy }
     val totalProtein = logs.sumOf { it.protein }
     val totalCarbs = logs.sumOf { it.carbs }
     val totalFat = logs.sumOf { it.fat }
 
-    // 搜索状态
-    var query by remember { mutableStateOf("") }
+    // 搜索状态保存：返回本页不清空（v2.4 在动作搜索页修过的同款问题，这里补上）
+    var query by rememberSaveable { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<Food>>(emptyList()) }
     LaunchedEffect(query, allFoods.size) {
         searchResults = if (query.isBlank()) emptyList()
         else repo.searchFoods(query, limit = 50)
     }
+    val listState = rememberLazyListState()
 
     var showTdeeDialog by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var editLog by remember { mutableStateOf<FoodLogEntity?>(null) }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // 顶部：搜索 + 标题
         item {
             TopAppBar(
                 title = { Text("营养", fontWeight = FontWeight.SemiBold) },
-                // 外层 LazyColumn 已经加了 statusBarsPadding，这里不要再叠加一次
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 actions = {
                     IconButton(onClick = { showTdeeDialog = true }) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "设置每日消耗")
+                        Icon(Icons.Outlined.Settings, contentDescription = "设置每日目标")
                     }
                 }
             )
         }
 
-        // 搜索框
         item {
             OutlinedTextField(
                 value = query,
@@ -156,7 +174,6 @@ fun NutritionScreen(
             )
         }
 
-        // 搜索结果（折叠态时显示其他内容）
         if (query.isNotBlank()) {
             item {
                 Text(
@@ -178,26 +195,53 @@ fun NutritionScreen(
                 items(searchResults, key = { it.id }) { food ->
                     FoodCard(
                         food = food,
-                        onClick = { onNavigate(Destinations.FoodDetail.create(food.id)) },
+                        onClick = {
+                            onNavigate(
+                                Destinations.FoodDetail.create(
+                                    food.id, dateKey, Meals.inferNow()
+                                )
+                            )
+                        },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
             }
         } else {
-            // 今日热量大卡片
+            // 日期切换条
+            item {
+                DateSwitcher(
+                    date = viewedDate,
+                    isToday = isToday,
+                    onPrev = {
+                        viewedEpochDay -= 1
+                        followingToday = false
+                    },
+                    onNext = {
+                        if (!isToday) {
+                            viewedEpochDay += 1
+                            followingToday = LocalDate.ofEpochDay(viewedEpochDay) == LocalDate.now()
+                        }
+                    },
+                    onToday = {
+                        viewedEpochDay = LocalDate.now().toEpochDay()
+                        followingToday = true
+                    }
+                )
+            }
+
             item {
                 CalorieSummaryCard(
-                    tdee = tdee,
+                    tdee = budget,
                     intake = totalEnergy,
                     protein = totalProtein,
                     carbs = totalCarbs,
                     fat = totalFat,
-                    onSetTdee = { showTdeeDialog = true },
-                    onClear = { showClearDialog = true }
+                    dateLabel = if (isToday) "今日热量"
+                    else "${viewedDate.monthValue}月${viewedDate.dayOfMonth}日热量",
+                    onSetTdee = { showTdeeDialog = true }
                 )
             }
 
-            // 食物分类
             item {
                 Text(
                     text = "食物分类",
@@ -219,7 +263,7 @@ fun NutritionScreen(
                 }
             }
 
-            // 今日记录
+            // 记录（按餐次分组）
             item {
                 Row(
                     modifier = Modifier
@@ -229,7 +273,7 @@ fun NutritionScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "今日记录 (${logs.size})",
+                        text = "${if (isToday) "今日" else "当天"}记录 (${logs.size})",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -244,19 +288,44 @@ fun NutritionScreen(
                 item {
                     EmptyState(
                         icon = Icons.Outlined.RestaurantMenu,
-                        title = "今天还没有记录",
+                        title = "这一天还没有记录",
                         subtitle = "搜索食物或在分类中找到它，记录克数后会自动计算热量与营养"
                     )
                 }
             } else {
-                items(logs, key = { it.id }) { log ->
-                    FoodLogRow(
-                        log = log,
-                        onDelete = {
-                            scope.launch { repo.removeFoodLog(log.id) }
-                        },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
+                Meals.ALL.forEach { meal ->
+                    val mealLogs = logs.filter { it.meal == meal }.sortedBy { it.addedAt }
+                    if (mealLogs.isNotEmpty()) {
+                        item(key = "n_meal_$meal") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = meal,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "${mealLogs.sumOf { it.energy }.toInt()} kcal",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        items(mealLogs, key = { it.id }) { log ->
+                            FoodLogRow(
+                                log = log,
+                                onClick = { editLog = log },
+                                onDelete = {
+                                    scope.launch { repo.removeFoodLog(log.id) }
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -264,12 +333,30 @@ fun NutritionScreen(
 
     if (showTdeeDialog) {
         TdeeDialog(
-            current = tdee,
-            onDismiss = { showTdeeDialog = false },
-            onSave = {
+            overrideKcal = tdeeOverride,
+            computedKcal = computeTdee(profile, latestWeight?.weightKg),
+            onSaveOverride = { v ->
                 scope.launch {
-                    repo.settings.setTdee(it)
+                    repo.settings.setTdee(v)
                     showTdeeDialog = false
+                }
+            },
+            onDismiss = { showTdeeDialog = false },
+            onEditProfile = {
+                showTdeeDialog = false
+                onNavigate(Destinations.ProfileEdit.route)
+            }
+        )
+    }
+
+    editLog?.let { log ->
+        EditGramsDialog(
+            log = log,
+            onDismiss = { editLog = null },
+            onConfirm = { grams ->
+                scope.launch {
+                    repo.updateFoodLogAmount(log, grams)
+                    editLog = null
                 }
             }
         )
@@ -278,11 +365,11 @@ fun NutritionScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text("清空今日记录？") },
-            text = { Text("此操作将移除今天的全部食物记录，无法撤销。") },
+            title = { Text("清空当天记录？") },
+            text = { Text("此操作将移除这一天的全部食物记录，无法撤销。") },
             confirmButton = {
                 TextButton(onClick = {
-                    scope.launch { repo.clearFoodLogs(todayKey) }
+                    scope.launch { repo.clearFoodLogs(dateKey) }
                     showClearDialog = false
                 }) { Text("清空", color = MaterialTheme.colorScheme.error) }
             },
@@ -293,7 +380,42 @@ fun NutritionScreen(
     }
 }
 
-/** 顶部热量总览卡：TDEE / 摄入 / 缺口 + 三大营养进度 */
+@Composable
+private fun DateSwitcher(
+    date: LocalDate,
+    isToday: Boolean,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onToday: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onPrev) {
+            Icon(Icons.Filled.ChevronLeft, contentDescription = "前一天")
+        }
+        Text(
+            text = "${date.monthValue}月${date.dayOfMonth}日 · ${
+                date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.CHINESE)
+            }${if (isToday) "（今天）" else ""}",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        if (!isToday) {
+            TextButton(onClick = onToday) { Text("今天") }
+        }
+        IconButton(onClick = onNext, enabled = !isToday) {
+            Icon(Icons.Filled.ChevronRight, contentDescription = "后一天")
+        }
+    }
+}
+
+/** 热量汇总卡：目标 / 摄入 / 缺口 + 三大营养累计（与今日页同口径）。 */
 @Composable
 private fun CalorieSummaryCard(
     tdee: Int,
@@ -301,25 +423,18 @@ private fun CalorieSummaryCard(
     protein: Double,
     carbs: Double,
     fat: Double,
-    onSetTdee: () -> Unit,
-    onClear: () -> Unit
+    dateLabel: String,
+    onSetTdee: () -> Unit
 ) {
-    val gap = tdee - intake   // 正值 = 缺口；负值 = 超出
+    val gap = tdee - intake
     val progress = if (tdee > 0) (intake / tdee).toFloat().coerceIn(0f, 1f) else 0f
-    val gapColor = when {
-        tdee <= 0 -> MaterialTheme.colorScheme.onSurfaceVariant
-        gap >= 800 -> MaterialTheme.colorScheme.error   // 缺口过大不健康
-        gap >= 300 -> MaterialTheme.colorScheme.tertiary // 适中减脂
-        gap >= 0 -> MaterialTheme.colorScheme.primary    // 接近持平
-        else -> MaterialTheme.colorScheme.error          // 超出
-    }
     val tip = when {
-        tdee <= 0 -> "未设置每日消耗，点击右上角设置"
+        tdee <= 0 -> "未设置每日目标，点击下方按钮设置"
         gap >= 1000 -> "热量缺口过大，注意避免代谢下降"
         gap >= 500 -> "适合减脂，建议保持"
         gap >= 200 -> "温和减脂区间"
         gap >= 0 -> "已接近持平"
-        else -> "今日摄入超出 ${(-gap).toInt()} kcal"
+        else -> "摄入超出 ${(-gap).toInt()} kcal"
     }
 
     Box(
@@ -347,7 +462,7 @@ private fun CalorieSummaryCard(
         )
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = "今日热量",
+                text = dateLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.9f)
             )
@@ -382,10 +497,10 @@ private fun CalorieSummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                MetricColumn(label = "缺口", value = if (tdee > 0) "${gap.toInt()}" else "—", valueColor = Color.White)
-                MetricColumn(label = "蛋白质", value = "${protein.toInt()}g", valueColor = Color.White)
-                MetricColumn(label = "碳水", value = "${carbs.toInt()}g", valueColor = Color.White)
-                MetricColumn(label = "脂肪", value = "${fat.toInt()}g", valueColor = Color.White)
+                MetricColumn(label = "缺口", value = if (tdee > 0) "${gap.toInt()}" else "—")
+                MetricColumn(label = "蛋白质", value = "${protein.toInt()}g")
+                MetricColumn(label = "碳水", value = "${carbs.toInt()}g")
+                MetricColumn(label = "脂肪", value = "${fat.toInt()}g")
             }
             Spacer(Modifier.height(12.dp))
             Surface(
@@ -400,38 +515,30 @@ private fun CalorieSummaryCard(
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FilledTonalButton(onClick = onSetTdee) {
-                    Text(if (tdee > 0) "调整 TDEE" else "设置 TDEE")
-                }
-                if (intake > 0) {
-                    FilledTonalButton(onClick = onClear) {
-                        Text("清空今日")
-                    }
-                }
+            FilledTonalButton(onClick = onSetTdee) {
+                Text(if (tdee > 0) "调整每日目标" else "设置每日目标")
             }
         }
     }
 }
 
 @Composable
-private fun MetricColumn(label: String, value: String, valueColor: Color) {
+private fun MetricColumn(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = valueColor
+            color = Color.White
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = valueColor.copy(alpha = 0.8f)
+            color = Color.White.copy(alpha = 0.8f)
         )
     }
 }
 
-/** 食物分类 pill */
 @Composable
 private fun CategoryPill(name: String, count: Int, onClick: () -> Unit) {
     Surface(
@@ -463,7 +570,7 @@ private fun CategoryPill(name: String, count: Int, onClick: () -> Unit) {
     }
 }
 
-/** 食物列表卡片 */
+/** 食物列表卡片（营养页搜索结果与添加页共用）。 */
 @Composable
 fun FoodCard(
     food: Food,
@@ -486,7 +593,6 @@ fun FoodCard(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 圆形食物图标占位
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -541,15 +647,18 @@ fun FoodCard(
     }
 }
 
-/** 今日记录行 */
+/** 记录行：点按改克数，右侧删除。 */
 @Composable
 private fun FoodLogRow(
     log: FoodLogEntity,
+    onClick: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -572,7 +681,9 @@ private fun FoodLogRow(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "${log.amountGram.toInt()}g · 蛋白 ${log.protein.toInt()}g / 碳水 ${log.carbs.toInt()}g / 脂肪 ${log.fat.toInt()}g",
+                    text = if (log.amountGram > 0)
+                        "${log.amountGram.toInt()}g · 蛋白 ${log.protein.toInt()}g / 碳水 ${log.carbs.toInt()}g / 脂肪 ${log.fat.toInt()}g"
+                    else "快速添加",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -593,57 +704,4 @@ private fun FoodLogRow(
             }
         }
     }
-}
-
-/** TDEE 设置对话框 */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TdeeDialog(
-    current: Int,
-    onDismiss: () -> Unit,
-    onSave: (Int) -> Unit
-) {
-    var text by remember { mutableStateOf(if (current > 0) current.toString() else "") }
-    var error by remember { mutableStateOf<String?>(null) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("设置每日能量消耗 (TDEE)") },
-        text = {
-            Column {
-                Text(
-                    text = "TDEE = 基础代谢 × 活动系数。可用 Mifflin-St Jeor 公式估算，或参考常用值：久坐 1800、轻度活动 2000、中度活动 2300、高强度 2600 kcal。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { s ->
-                        text = s.filter { it.isDigit() }.take(5)
-                        error = null
-                    },
-                    label = { Text("每日消耗 (kcal)") },
-                    singleLine = true,
-                    isError = error != null,
-                    supportingText = error?.let { { Text(it) } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(14.dp)
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val v = text.trim().toIntOrNull()
-                // 之前超出范围直接静默不保存，用户以为点了没反应
-                when {
-                    v == null -> error = "请输入数字"
-                    v !in 800..8000 -> error = "请输入 800 ~ 8000 之间的数值"
-                    else -> onSave(v)
-                }
-            }) { Text("保存") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
-        }
-    )
 }

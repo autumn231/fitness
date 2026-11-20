@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fitness.app.data.ExerciseRepository
+import com.fitness.app.data.effectiveTdee
+import com.fitness.app.data.profileComplete
 import com.fitness.app.ui.nav.Destinations
 import com.fitness.app.ui.theme.CardShape
 
@@ -55,10 +57,14 @@ fun ProfileScreen(
 ) {
     val favoritesCount = repo.observeFavorites()
         .collectAsStateWithLifecycle(initialValue = emptyList()).value.size
-    val recentsCount = repo.observeRecents(100)
-        .collectAsStateWithLifecycle(initialValue = emptyList()).value.size
     val plansCount = repo.observePlans()
         .collectAsStateWithLifecycle(initialValue = emptyList()).value.size
+    val profile by repo.observeProfile().collectAsStateWithLifecycle(initialValue = null)
+    val latestWeight by repo.observeLatestWeight().collectAsStateWithLifecycle(initialValue = null)
+    val tdeeOverride by repo.settings.tdee.collectAsStateWithLifecycle(initialValue = 0)
+    val sessions by repo.observeSessions().collectAsStateWithLifecycle(initialValue = emptyList())
+    val finishedCount = sessions.count { it.endedAt != null }
+    val budget = effectiveTdee(tdeeOverride, profile, latestWeight?.weightKg)
 
     Scaffold(
         // 底部导航栏的高度已由根 Scaffold 让出，这里不再重复加系统栏内边距
@@ -75,7 +81,7 @@ fun ProfileScreen(
                 .padding(bottom = 16.dp)
         ) {
 
-            // 用户卡片（顶部渐变）
+            // 用户卡片（顶部渐变）：显示真实档案摘要，点按去完善档案
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,6 +95,7 @@ fun ProfileScreen(
                             )
                         )
                     )
+                    .clickable { onNavigate(Destinations.ProfileEdit.route) }
             ) {
                 Row(
                     modifier = Modifier.padding(20.dp),
@@ -116,8 +123,19 @@ fun ProfileScreen(
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
+                        val summaryParts = buildList {
+                            profile?.heightCm?.takeIf { it > 0 }?.let {
+                                add("身高 ${if (it % 1.0 == 0.0) it.toInt() else it}cm")
+                            }
+                            latestWeight?.let { add("体重 ${formatKg(it.weightKg)}kg") }
+                            if (budget > 0) add("目标 ${budget} 千卡/天")
+                        }
                         Text(
-                            text = "继续坚持，每一天都在变得更好",
+                            text = if (summaryParts.isNotEmpty()) {
+                                summaryParts.joinToString(" · ")
+                            } else {
+                                "点这里完善档案，自动算每日热量目标"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.92f)
                         )
@@ -133,13 +151,25 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 StatCard(title = "收藏", value = favoritesCount, modifier = Modifier.weight(1f))
-                StatCard(title = "历史", value = recentsCount, modifier = Modifier.weight(1f))
+                StatCard(title = "训练", value = finishedCount, modifier = Modifier.weight(1f))
                 StatCard(title = "计划", value = plansCount, modifier = Modifier.weight(1f))
             }
 
             Spacer(Modifier.height(16.dp))
 
             // 功能入口列表
+            ProfileItem(
+                icon = Icons.Outlined.Person,
+                title = "个人档案",
+                subtitle = if (profileComplete(profile)) "性别、身高、活动水平（已填齐）" else "填齐后自动算每日热量目标",
+                onClick = { onNavigate(Destinations.ProfileEdit.route) }
+            )
+            ProfileItem(
+                icon = Icons.Outlined.FitnessCenter,
+                title = "体重进度",
+                subtitle = latestWeight?.let { "最新 ${formatKg(it.weightKg)} kg · ${it.dateKey}" } ?: "还没有记录，点开记一条",
+                onClick = { onNavigate(Destinations.Weight.route) }
+            )
             ProfileItem(
                 icon = Icons.Outlined.Search,
                 title = "搜索动作",

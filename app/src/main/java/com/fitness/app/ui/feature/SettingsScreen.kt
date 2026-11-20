@@ -45,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fitness.app.data.ExerciseRepository
+import com.fitness.app.data.computeTdee
+import com.fitness.app.data.effectiveTdee
 import com.fitness.app.data.prefs.ThemeMode
 import com.fitness.app.ui.theme.CardShape
 import kotlinx.coroutines.launch
@@ -61,6 +63,12 @@ fun SettingsScreen(
     val currentTheme = themeState.value
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showClearFavoritesDialog by remember { mutableStateOf(false) }
+    var showTdee by remember { mutableStateOf(false) }
+    val tdeeOverride by repo.settings.tdee.collectAsStateWithLifecycle(initialValue = 0)
+    val profile by repo.observeProfile().collectAsStateWithLifecycle(initialValue = null)
+    val latestWeight by repo.observeLatestWeight().collectAsStateWithLifecycle(initialValue = null)
+    val computedTdee = computeTdee(profile, latestWeight?.weightKg)
+    val budget = effectiveTdee(tdeeOverride, profile, latestWeight?.weightKg)
 
     Scaffold(
         topBar = {
@@ -101,6 +109,34 @@ fun SettingsScreen(
                 )
             }
 
+            // 每日热量目标（TDEE）：档案齐全时自动算，也可手动覆盖
+            SettingsCard(title = "每日热量目标", icon = null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showTdee = true }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (budget > 0) "$budget 千卡/天" else "未设置",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = when {
+                                tdeeOverride > 0 -> "手动设置（点按修改或清除）"
+                                computedTdee > 0 -> "按档案与最新体重自动计算（点按可手动覆盖）"
+                                else -> "完善个人档案并记录体重后自动计算，或点按手动设置"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // 数据管理
             SettingsCard(title = "数据管理", icon = Icons.Outlined.DeleteSweep) {
                 ClickableRow(
@@ -124,6 +160,20 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showTdee) {
+        TdeeDialog(
+            overrideKcal = tdeeOverride,
+            computedKcal = computedTdee,
+            onSaveOverride = { v ->
+                scope.launch {
+                    repo.settings.setTdee(v)
+                    showTdee = false
+                }
+            },
+            onDismiss = { showTdee = false }
+        )
     }
 
     if (showClearHistoryDialog) {

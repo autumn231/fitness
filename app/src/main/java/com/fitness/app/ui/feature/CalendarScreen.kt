@@ -76,6 +76,13 @@ fun CalendarScreen(
     val plansState = repo.observePlans().collectAsStateWithLifecycle(initialValue = emptyList())
     val calendarPlans = calendarState.value
     val plans = plansState.value
+    // 已完成训练的日期（落库后日历能区分「排了计划」与「真的练了」）
+    val sessionsState = repo.observeSessions().collectAsStateWithLifecycle(initialValue = emptyList())
+    val finishedByDate = sessionsState.value
+        .filter { it.endedAt != null }
+        .groupBy { it.dateKey }
+        .mapValues { (_, list) -> list.maxByOrNull { it.endedAt ?: 0L }!! }
+    val finishedDates = finishedByDate.keys
 
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -115,6 +122,7 @@ fun CalendarScreen(
                     yearMonth = currentMonth,
                     selectedDate = selectedDate,
                     scheduledDates = calendarPlans.map { it.dateKey }.toSet(),
+                    finishedDates = finishedDates,
                     onDateSelected = { date ->
                         selectedDate = if (date == selectedDate) null else date
                     }
@@ -128,6 +136,10 @@ fun CalendarScreen(
                         date = selectedDate!!,
                         planName = selectedPlan?.plan?.name,
                         planItemCount = selectedPlan?.items?.size ?: 0,
+                        finishedSummary = finishedByDate[selectedDateKey]?.let { s ->
+                            val mins = (s.durationSec / 60).toInt()
+                            "已完成训练：${s.planName.ifBlank { "自由训练" }} · ${mins} 分钟"
+                        },
                         onSetPlan = { showPicker = true },
                         onRemove = {
                             scope.launch {
@@ -247,6 +259,7 @@ private fun CalendarGrid(
     yearMonth: YearMonth,
     selectedDate: LocalDate?,
     scheduledDates: Set<String>,
+    finishedDates: Set<String>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val today = LocalDate.now()
@@ -295,11 +308,13 @@ private fun CalendarGrid(
                                 val isSelected = date == selectedDate
                                 val isToday = date == today
                                 val hasSchedule = dateKey in scheduledDates
+                                val isFinished = dateKey in finishedDates
                                 CalendarDayCell(
                                     day = day,
                                     isToday = isToday,
                                     isSelected = isSelected,
                                     hasSchedule = hasSchedule,
+                                    isFinished = isFinished,
                                     onClick = { onDateSelected(date) }
                                 )
                             }
@@ -317,6 +332,7 @@ private fun CalendarDayCell(
     isToday: Boolean,
     isSelected: Boolean,
     hasSchedule: Boolean,
+    isFinished: Boolean,
     onClick: () -> Unit
 ) {
     val bgColor = when {
@@ -345,7 +361,16 @@ private fun CalendarDayCell(
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
                 color = fgColor
             )
-            if (hasSchedule) {
+            if (isFinished) {
+                // 已完成：绿色对勾（与「已排计划」的圆点区分）
+                Text(
+                    text = "✓",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else Color(0xFF2E7D32)
+                )
+            } else if (hasSchedule) {
                 Box(
                     modifier = Modifier
                         .size(5.dp)
@@ -365,6 +390,7 @@ private fun SelectedDateCard(
     date: LocalDate,
     planName: String?,
     planItemCount: Int,
+    finishedSummary: String?,
     onSetPlan: () -> Unit,
     onRemove: () -> Unit,
     onStartTraining: () -> Unit
@@ -385,6 +411,15 @@ private fun SelectedDateCard(
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(Modifier.height(10.dp))
+            if (finishedSummary != null) {
+                Text(
+                    text = "✓ $finishedSummary",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2E7D32)
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             if (planName != null) {
                 Text(
                     text = "计划：$planName",

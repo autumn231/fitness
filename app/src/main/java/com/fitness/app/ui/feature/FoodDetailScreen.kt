@@ -59,10 +59,18 @@ import kotlinx.coroutines.launch
 fun FoodDetailScreen(
     repo: ExerciseRepository,
     foodId: String,
+    dateKey: String = "",
+    meal: String = "",
     onBack: () -> Unit
 ) {
     val food = remember(foodId) { repo.foodById(foodId) }
     val scope = rememberCoroutineScope()
+
+    // 记到哪天、哪一餐：从今日页/营养页带入，缺省为今天 + 按时间推断
+    val targetDate = dateKey.ifBlank { com.fitness.app.data.DateKeys.today() }
+    var selectedMeal by remember {
+        mutableStateOf(meal.ifBlank { com.fitness.app.data.Meals.inferNow() })
+    }
 
     // 输入克数，默认 100
     var amountText by remember { mutableStateOf("100") }
@@ -141,7 +149,31 @@ fun FoodDetailScreen(
                         }
                     }
                     Spacer(Modifier.height(12.dp))
-                    // 实时计算的能量与营养
+                    // 餐次选择
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        com.fitness.app.data.Meals.ALL.forEach { m ->
+                            val selected = m == selectedMeal
+                            Surface(
+                                modifier = Modifier
+                                    .clip(ChipShape)
+                                    .clickable { selectedMeal = m },
+                                shape = ChipShape,
+                                color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Text(
+                                    text = m,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    // 实时计算的能量与营养（克数一变即时预览这一份的构成）
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -156,7 +188,7 @@ fun FoodDetailScreen(
                         onClick = {
                             if (amount > 0) {
                                 scope.launch {
-                                    repo.addFoodLog(food, amount)
+                                    repo.addFoodLog(food, amount, targetDate, selectedMeal)
                                     justAdded = true
                                     onBack()
                                 }
@@ -167,7 +199,7 @@ fun FoodDetailScreen(
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text("加入今日记录")
+                        Text("加入记录 · $selectedMeal")
                     }
                 }
             }
@@ -259,42 +291,12 @@ private fun FoodHeroCard(food: Food) {
                 color = Color.White.copy(alpha = 0.92f)
             )
             Spacer(Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                HeroMetric("能量", "${food.energy.toInt()}", "kcal")
-                HeroMetric("蛋白", "${food.protein.toInt()}", "g")
-                HeroMetric("碳水", "${food.carbs.toInt()}", "g")
-                HeroMetric("脂肪", "${food.fat.toInt()}", "g")
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeroMetric(label: String, value: String, unit: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(Modifier.width(2.dp))
-            Text(
-                text = unit,
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.85f),
-                modifier = Modifier.padding(bottom = 2.dp)
+                text = "每 100g 能量 ${food.energy.toInt()} kcal（详细成分见下方）",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.92f)
             )
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.85f)
-        )
     }
 }
 

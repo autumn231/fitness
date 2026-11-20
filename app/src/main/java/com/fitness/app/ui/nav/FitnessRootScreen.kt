@@ -32,7 +32,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitness.app.data.ExerciseRepository
+import com.fitness.app.data.Meals
 import com.fitness.app.ui.feature.AboutScreen
+import com.fitness.app.ui.feature.AddFoodScreen
 import com.fitness.app.ui.feature.CalendarScreen
 import com.fitness.app.ui.feature.CategoryScreen
 import com.fitness.app.ui.feature.ExerciseDetailScreen
@@ -46,10 +48,12 @@ import com.fitness.app.ui.feature.PickerScreen
 import com.fitness.app.ui.feature.PlanDetailScreen
 import com.fitness.app.ui.feature.PlanEditorScreen
 import com.fitness.app.ui.feature.PlanScreen
+import com.fitness.app.ui.feature.ProfileEditScreen
 import com.fitness.app.ui.feature.ProfileScreen
 import com.fitness.app.ui.feature.SearchScreen
 import com.fitness.app.ui.feature.SettingsScreen
 import com.fitness.app.ui.feature.TrainingScreen
+import com.fitness.app.ui.feature.WeightScreen
 
 /**
  * 应用根容器：启动时加载本地数据，加载完成后展示主导航（4 Tab + 子页路由）。
@@ -265,12 +269,52 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
             }
             composable(
                 Destinations.FoodDetail.route,
-                arguments = listOf(navArgument("foodId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("foodId") { type = NavType.StringType },
+                    navArgument("date") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("meal") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
             ) { entry ->
                 val id = entry.arguments?.getString("foodId").orEmpty()
                 FoodDetailScreen(
                     repo = repo,
                     foodId = id,
+                    dateKey = entry.arguments?.getString("date").orEmpty(),
+                    meal = entry.arguments?.getString("meal").orEmpty(),
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable(
+                Destinations.AddFood.route,
+                arguments = listOf(
+                    navArgument("dateKey") { type = NavType.StringType },
+                    navArgument("mealIndex") { type = NavType.IntType }
+                )
+            ) { entry ->
+                val dateKey = entry.arguments?.getString("dateKey").orEmpty()
+                val mealIndex = entry.arguments?.getInt("mealIndex") ?: 0
+                AddFoodScreen(
+                    repo = repo,
+                    dateKey = dateKey,
+                    meal = Meals.ALL.getOrElse(mealIndex) { Meals.SNACK },
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable(Destinations.Weight.route) {
+                WeightScreen(
+                    repo = repo,
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable(Destinations.ProfileEdit.route) {
+                ProfileEditScreen(
+                    repo = repo,
                     onBack = { nav.popBackStack() }
                 )
             }
