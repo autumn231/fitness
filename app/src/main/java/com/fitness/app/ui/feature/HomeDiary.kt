@@ -34,12 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.fitness.app.data.local.FoodLogEntity
 import com.fitness.app.ui.common.BorderedCard
-import com.fitness.app.ui.theme.ChipShape
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -209,25 +207,6 @@ fun DiaryLogRow(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun LibraryChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = ChipShape,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp)
-        )
     }
 }
 

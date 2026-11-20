@@ -1,22 +1,18 @@
 package com.fitness.app.ui.feature
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -25,7 +21,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,10 +40,7 @@ import com.fitness.app.data.DateKeys
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.Meals
 import com.fitness.app.data.computeTdee
-import com.fitness.app.ui.common.ExerciseCard
-import com.fitness.app.ui.common.SectionHeader
 import com.fitness.app.ui.nav.Destinations
-import com.fitness.app.ui.theme.ChipShape
 import com.fitness.app.ui.viewmodel.HomeCards
 import com.fitness.app.ui.viewmodel.HomeViewModel
 import com.fitness.app.ui.viewmodel.repoViewModelFactory
@@ -58,7 +50,8 @@ import java.util.Locale
 
 /**
  * 今日页（原首页）：Diary 式今日记录页——打开 App 第一眼就是今天：
- * 周日期条 → 概览卡片（可自定义增删排序，第 4 期）→ 按餐次的记录 → 动作库二级入口。
+ * 周日期条 → 概览卡片（可自定义增删排序，第 4 期）→ 按餐次的记录，到此为止
+ * （v3.5 主页瘦身：动作库区块已移除，入口在训练 Tab；默认只显示热量总账卡）。
  * 状态与聚合在 HomeViewModel（第 3 期迁出）；卡片组件在 HomeCards，
  * 周条/餐次/日记行在 HomeDiary。
  */
@@ -77,7 +70,6 @@ fun HomeScreen(
     val trends by vm.trends.collectAsStateWithLifecycle()
     val tdeeOverride by vm.tdeeOverride.collectAsStateWithLifecycle()
     val profile by vm.profile.collectAsStateWithLifecycle()
-    val recents by vm.recents.collectAsStateWithLifecycle()
     val activeSession by vm.activeSession.collectAsStateWithLifecycle()
     val cardConfigs by vm.cardConfigs.collectAsStateWithLifecycle()
     val editCardsMode by vm.editCardsMode.collectAsStateWithLifecycle()
@@ -268,67 +260,6 @@ fun HomeScreen(
                 }
             }
 
-            // 动作库（二级入口）
-            item { SectionHeader(title = "动作库") }
-            item {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clickable { onNavigate(Destinations.Search.route) },
-                    shape = ChipShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Outlined.Search, contentDescription = null)
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = "搜索动作、肌群、器械…",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    LibraryChip("动作分类", Modifier.weight(1f)) {
-                        onNavigate(Destinations.Category.route)
-                    }
-                    LibraryChip("收藏与历史", Modifier.weight(1f)) {
-                        onNavigate(Destinations.Favorites.route)
-                    }
-                    LibraryChip("我的计划", Modifier.weight(1f)) {
-                        onNavigate(Destinations.Plans.route)
-                    }
-                }
-            }
-            if (recents.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "最近浏览",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
-                    )
-                }
-                items(recents.take(3), key = { "recent_" + it.exerciseId }) { recent ->
-                    val ex = repo.byId(recent.exerciseId) ?: return@items
-                    ExerciseCard(
-                        exercise = ex,
-                        onClick = { onNavigate(Destinations.Exercise.create(ex.id)) },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp)
-                    )
-                }
-            }
         }
     }
 

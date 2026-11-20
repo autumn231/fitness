@@ -13,7 +13,6 @@ import com.fitness.app.data.local.CalendarPlanEntity
 import com.fitness.app.data.local.FoodLogEntity
 import com.fitness.app.data.local.PlanWithItems
 import com.fitness.app.data.local.ProfileEntity
-import com.fitness.app.data.local.RecentEntity
 import com.fitness.app.data.local.WeightLogEntity
 import com.fitness.app.data.local.WorkoutSessionEntity
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -97,8 +96,6 @@ class HomeViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val plans: StateFlow<List<PlanWithItems>> = repo.observePlans()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-    val recents: StateFlow<List<RecentEntity>> = repo.observeRecents(8)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     private val allFoodLogs: StateFlow<List<FoodLogEntity>> = repo.observeAllFoodLogs()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -163,7 +160,16 @@ class HomeViewModel(
         }
     }
 
+    /** v3.5 新默认：顺序不变，仅热量总账（BUDGET）默认显示，其余默认隐藏。 */
+    private fun defaultCardConfigs(): List<HomeCardConfig> =
+        HomeCards.DEFAULT_ORDER.map { HomeCardConfig(it, visible = it == HomeCards.BUDGET) }
+
     private fun parseCardConfig(raw: String): List<HomeCardConfig> {
+        // 存量迁移（v3.5）：v3.4 的默认是四张卡全显示，用户刚装上时落盘的配置串
+        // 很可能就是这个旧默认值。若存量串与旧默认完全一致，说明用户从未在
+        // 「编辑卡片」里改过，按 v3.5 新默认（仅热量总账）生效；只要与旧默认有
+        // 任何不同，就是用户手动改过的，一律尊重存量、不做处理。
+        if (raw.isBlank() || raw == LEGACY_DEFAULT_RAW) return defaultCardConfigs()
         val parsed = raw.split(",").mapNotNull { part ->
             val seg = part.trim().split(":")
             val id = seg.getOrNull(0) ?: return@mapNotNull null
@@ -171,7 +177,7 @@ class HomeViewModel(
             HomeCardConfig(id, visible = seg.getOrNull(1) != "0")
         }
         val missing = HomeCards.DEFAULT_ORDER.filter { id -> parsed.none { it.id == id } }
-        return parsed + missing.map { HomeCardConfig(it, visible = true) }
+        return parsed + missing.map { HomeCardConfig(it, visible = it == HomeCards.BUDGET) }
     }
 
     private fun persistCardConfig() {
@@ -305,4 +311,9 @@ class HomeViewModel(
 
     /** 快速记录面板里「记饮食」的默认餐次（按当前时间推断）。 */
     fun inferMealNow(): String = Meals.inferNow()
+
+    companion object {
+        /** v3.4 默认配置的序列化值（四张卡全显、默认顺序），用作存量迁移的比对基准。 */
+        private const val LEGACY_DEFAULT_RAW = "budget:1,training:1,weight:1,trend:1"
+    }
 }
