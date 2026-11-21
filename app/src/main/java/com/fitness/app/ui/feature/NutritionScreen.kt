@@ -155,8 +155,10 @@ fun NutritionScreen(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("搜索食物，如：包子、鸡胸肉…") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    placeholder = { Text("搜索食物") },
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp)
@@ -164,7 +166,7 @@ fun NutritionScreen(
                 Spacer(Modifier.width(8.dp))
                 FilledTonalButton(
                     onClick = { onNavigate(Destinations.Recipes.route) },
-                    modifier = Modifier.height(56.dp)
+                    modifier = Modifier.height(48.dp)
                 ) {
                     Text("食谱")
                 }

@@ -6,18 +6,18 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -42,6 +42,8 @@ import com.fitness.app.data.DateKeys
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.Meals
 import com.fitness.app.data.computeTdee
+import com.fitness.app.data.local.WorkoutSessionEntity
+import com.fitness.app.ui.common.BorderedCard
 import com.fitness.app.ui.nav.Destinations
 import com.fitness.app.ui.viewmodel.HomeCards
 import com.fitness.app.ui.viewmodel.HomeViewModel
@@ -73,6 +75,7 @@ fun HomeScreen(
     val tdeeOverride by vm.tdeeOverride.collectAsStateWithLifecycle()
     val profile by vm.profile.collectAsStateWithLifecycle()
     val activeSession by vm.activeSession.collectAsStateWithLifecycle()
+    val allSessions by vm.sessions.collectAsStateWithLifecycle()
     val cardConfigs by vm.cardConfigs.collectAsStateWithLifecycle()
     val editCardsMode by vm.editCardsMode.collectAsStateWithLifecycle()
     val editLog by vm.editLog.collectAsStateWithLifecycle()
@@ -141,9 +144,6 @@ fun HomeScreen(
                     }
                     if (!isToday) {
                         TextButton(onClick = { vm.backToToday() }) { Text("回到今天") }
-                    }
-                    IconButton(onClick = { onNavigate(Destinations.Calendar.route) }) {
-                        Icon(Icons.Outlined.CalendarMonth, contentDescription = "日历")
                     }
                     if (!editCardsMode) {
                         TextButton(onClick = { vm.setEditCardsMode(true) }) { Text("编辑卡片") }
@@ -265,6 +265,43 @@ fun HomeScreen(
                 }
             }
 
+            // 训练记录（v3.9 合并到主页：最近的训练会话，数据来自 HomeViewModel.sessions）
+            item(key = "sessions_header") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 8.dp, top = 14.dp, bottom = 2.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "训练记录",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { onNavigate(Destinations.Training.route) }) {
+                        Text("去训练")
+                    }
+                }
+            }
+            if (allSessions.isEmpty()) {
+                item(key = "sessions_empty") {
+                    Text(
+                        text = "还没有训练记录，完成一次训练后会显示在这里",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)
+                    )
+                }
+            } else {
+                items(allSessions.take(8), key = { "session_${it.id}" }) { session ->
+                    SessionRecordRow(
+                        session = session,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
         }
     }
 
@@ -332,6 +369,52 @@ fun HomeScreen(
                     vm.setShowQuickSheet(false)
                     onNavigate(Destinations.Training.route)
                 }
+            }
+        }
+    }
+}
+
+/** 训练记录行：计划名 + 日期/时长/状态，与饮食日记行同款式（BorderedCard）。 */
+@Composable
+private fun SessionRecordRow(
+    session: WorkoutSessionEntity,
+    modifier: Modifier = Modifier
+) {
+    val date = runCatching { LocalDate.parse(session.dateKey) }.getOrNull()
+    val today = LocalDate.now()
+    val dateText = when (date) {
+        today -> "今天"
+        today.minusDays(1) -> "昨天"
+        null -> session.dateKey
+        else -> "${date.monthValue}月${date.dayOfMonth}日"
+    }
+    val durationText = when {
+        session.durationSec >= 3600 ->
+            "${session.durationSec / 3600} 小时 ${(session.durationSec % 3600) / 60} 分"
+        session.durationSec > 0 -> "${session.durationSec / 60} 分钟"
+        else -> ""
+    }
+    val statusText = if (session.endedAt == null) "进行中" else "已完成"
+    BorderedCard(modifier = modifier) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = session.planName.ifBlank { "自由训练" },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Text(
+                    text = listOf(dateText, durationText, statusText)
+                        .filter { it.isNotEmpty() }
+                        .joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
