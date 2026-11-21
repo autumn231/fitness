@@ -1,0 +1,748 @@
+{
+ "templates": [
+  {
+   "id": "beginner-fullbody",
+   "title": "新手全身计划",
+   "desc": "适合刚开始力量训练的新手，A/B 两套全身动作交替练，建立基础力量与动作模式。",
+   "level": "新手",
+   "daysPerWeek": "每周 3 练（A/B 交替）",
+   "days": [
+    {
+     "name": "全身 A",
+     "items": [
+      {
+       "exerciseId": "0043",
+       "sets": 4,
+       "reps": "6"
+      },
+      {
+       "exerciseId": "0025",
+       "sets": 4,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "0027",
+       "sets": 4,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0464",
+       "sets": 3,
+       "reps": "40秒"
+      }
+     ]
+    },
+    {
+     "name": "全身 B",
+     "items": [
+      {
+       "exerciseId": "0032",
+       "sets": 3,
+       "reps": "5"
+      },
+      {
+       "exerciseId": "0091",
+       "sets": 3,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "2330",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0054",
+       "sets": 3,
+       "reps": "每侧 10"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ppl-3day",
+   "title": "推拉腿 · 一周三练",
+   "desc": "经典推/拉/腿分化，一周各练一次，适合时间有限又想系统增肌的人。",
+   "level": "进阶",
+   "daysPerWeek": "每周 3 练",
+   "days": [
+    {
+     "name": "推（胸肩三头）",
+     "items": [
+      {
+       "exerciseId": "0025",
+       "sets": 4,
+       "reps": "6"
+      },
+      {
+       "exerciseId": "0047",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0426",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0334",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0201",
+       "sets": 3,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "拉（背二头）",
+     "items": [
+      {
+       "exerciseId": "0032",
+       "sets": 3,
+       "reps": "5"
+      },
+      {
+       "exerciseId": "0652",
+       "sets": 4,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "0180",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0031",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0298",
+       "sets": 3,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "腿",
+     "items": [
+      {
+       "exerciseId": "0043",
+       "sets": 4,
+       "reps": "6"
+      },
+      {
+       "exerciseId": "0085",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0739",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0599",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "1372",
+       "sets": 4,
+       "reps": "15"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ppl-6day",
+   "title": "推拉腿 · 一周六练",
+   "desc": "推拉腿循环两轮，B 日换哑铃与器械变式补容量，适合恢复能力强的进阶者。",
+   "level": "进阶",
+   "daysPerWeek": "每周 6 练",
+   "days": [
+    {
+     "name": "推 A（杠铃）",
+     "items": [
+      {
+       "exerciseId": "0025",
+       "sets": 4,
+       "reps": "6"
+      },
+      {
+       "exerciseId": "0047",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0426",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0334",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0201",
+       "sets": 3,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "拉 A（杠铃）",
+     "items": [
+      {
+       "exerciseId": "0032",
+       "sets": 3,
+       "reps": "5"
+      },
+      {
+       "exerciseId": "0652",
+       "sets": 4,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "0180",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0031",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0298",
+       "sets": 3,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "腿 A",
+     "items": [
+      {
+       "exerciseId": "0043",
+       "sets": 4,
+       "reps": "6"
+      },
+      {
+       "exerciseId": "0085",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0739",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0599",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "1372",
+       "sets": 4,
+       "reps": "15"
+      }
+     ]
+    },
+    {
+     "name": "推 B（哑铃）",
+     "items": [
+      {
+       "exerciseId": "0289",
+       "sets": 4,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0319",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0091",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0178",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0060",
+       "sets": 3,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "拉 B（器械）",
+     "items": [
+      {
+       "exerciseId": "0027",
+       "sets": 4,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "2330",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0215",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0406",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0165",
+       "sets": 3,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "腿 B",
+     "items": [
+      {
+       "exerciseId": "0042",
+       "sets": 3,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "1409",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0585",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0586",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0088",
+       "sets": 4,
+       "reps": "15"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "upper-lower",
+   "title": "上下肢分化 · 一周四练",
+   "desc": "上肢与下肢各两练，主项打力量、副项补容量，是最均衡的四日分化。",
+   "level": "进阶",
+   "daysPerWeek": "每周 4 练",
+   "days": [
+    {
+     "name": "上肢 A",
+     "items": [
+      {
+       "exerciseId": "0025",
+       "sets": 4,
+       "reps": "6"
+      },
+      {
+       "exerciseId": "0027",
+       "sets": 4,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "0091",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0652",
+       "sets": 3,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "0031",
+       "sets": 2,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0201",
+       "sets": 2,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "下肢 A",
+     "items": [
+      {
+       "exerciseId": "0043",
+       "sets": 4,
+       "reps": "6"
+      },
+      {
+       "exerciseId": "0085",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0054",
+       "sets": 3,
+       "reps": "每侧 10"
+      },
+      {
+       "exerciseId": "1372",
+       "sets": 4,
+       "reps": "15"
+      }
+     ]
+    },
+    {
+     "name": "上肢 B",
+     "items": [
+      {
+       "exerciseId": "0047",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0180",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0289",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "2330",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0334",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0060",
+       "sets": 2,
+       "reps": "12"
+      }
+     ]
+    },
+    {
+     "name": "下肢 B",
+     "items": [
+      {
+       "exerciseId": "0032",
+       "sets": 3,
+       "reps": "5"
+      },
+      {
+       "exerciseId": "0739",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0585",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0599",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0088",
+       "sets": 4,
+       "reps": "15"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "five-split",
+   "title": "五分化 · 一天一肌群",
+   "desc": "胸、背、腿、肩、手臂各占一天，单次专注一个肌群，健美式经典分化。",
+   "level": "进阶",
+   "daysPerWeek": "每周 5 练",
+   "days": [
+    {
+     "name": "胸",
+     "items": [
+      {
+       "exerciseId": "0025",
+       "sets": 4,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "0047",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0308",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0251",
+       "sets": 3,
+       "reps": "力竭"
+      }
+     ]
+    },
+    {
+     "name": "背",
+     "items": [
+      {
+       "exerciseId": "0032",
+       "sets": 4,
+       "reps": "5"
+      },
+      {
+       "exerciseId": "0652",
+       "sets": 4,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "0027",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "2330",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0095",
+       "sets": 3,
+       "reps": "15"
+      }
+     ]
+    },
+    {
+     "name": "腿",
+     "items": [
+      {
+       "exerciseId": "0043",
+       "sets": 4,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "0739",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0085",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0585",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0599",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "1372",
+       "sets": 4,
+       "reps": "15"
+      }
+     ]
+    },
+    {
+     "name": "肩",
+     "items": [
+      {
+       "exerciseId": "0091",
+       "sets": 4,
+       "reps": "8"
+      },
+      {
+       "exerciseId": "0334",
+       "sets": 4,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0310",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0215",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0406",
+       "sets": 3,
+       "reps": "15"
+      }
+     ]
+    },
+    {
+     "name": "手臂",
+     "items": [
+      {
+       "exerciseId": "0031",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0060",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0298",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0201",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0165",
+       "sets": 2,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0030",
+       "sets": 2,
+       "reps": "10"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "home-bodyweight",
+   "title": "徒手居家计划",
+   "desc": "全程零器械，在家就能练。引体向上需要一根单杠，没有单杠时用反向划船替代。",
+   "level": "新手",
+   "daysPerWeek": "每周 3 练",
+   "days": [
+    {
+     "name": "居家 A",
+     "items": [
+      {
+       "exerciseId": "0662",
+       "sets": 4,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "0514",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "0499",
+       "sets": 3,
+       "reps": "12"
+      },
+      {
+       "exerciseId": "3013",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0464",
+       "sets": 3,
+       "reps": "40秒"
+      }
+     ]
+    },
+    {
+     "name": "居家 B",
+     "items": [
+      {
+       "exerciseId": "0283",
+       "sets": 3,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "3769",
+       "sets": 3,
+       "reps": "每侧 10"
+      },
+      {
+       "exerciseId": "0652",
+       "sets": 3,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "0489",
+       "sets": 3,
+       "reps": "15"
+      },
+      {
+       "exerciseId": "0687",
+       "sets": 3,
+       "reps": "每侧 12"
+      }
+     ]
+    },
+    {
+     "name": "居家 C",
+     "items": [
+      {
+       "exerciseId": "0279",
+       "sets": 3,
+       "reps": "力竭"
+      },
+      {
+       "exerciseId": "1160",
+       "sets": 3,
+       "reps": "10"
+      },
+      {
+       "exerciseId": "0630",
+       "sets": 3,
+       "reps": "40秒"
+      },
+      {
+       "exerciseId": "1373",
+       "sets": 3,
+       "reps": "20"
+      },
+      {
+       "exerciseId": "0276",
+       "sets": 3,
+       "reps": "每侧 10"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

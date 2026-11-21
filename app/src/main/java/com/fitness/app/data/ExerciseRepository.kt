@@ -20,6 +20,9 @@ import com.fitness.app.data.local.WorkoutSetEntity
 import com.fitness.app.i18n.displayName
 import com.fitness.app.data.model.Exercise
 import com.fitness.app.data.model.Food
+import com.fitness.app.data.model.NutritionTotals
+import com.fitness.app.data.model.PlanTemplate
+import com.fitness.app.data.model.Recipe
 import com.fitness.app.data.prefs.SettingsDataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -48,6 +51,15 @@ class ExerciseRepository(
     @Volatile
     private var foodByIdMap: Map<String, Food> = emptyMap()
 
+    @Volatile
+    private var planTemplates: List<PlanTemplate> = emptyList()
+
+    @Volatile
+    private var recipes: List<Recipe> = emptyList()
+
+    @Volatile
+    private var recipeByIdMap: Map<String, Recipe> = emptyMap()
+
     val isLoaded: Boolean get() = loaded.isNotEmpty()
 
     /**
@@ -64,6 +76,14 @@ class ExerciseRepository(
             val list = AssetsLoader.loadFoods(context)
             foodByIdMap = list.associateBy { it.id }
             foods = list
+        }
+        if (planTemplates.isEmpty()) {
+            planTemplates = AssetsLoader.loadPlanTemplates(context)
+        }
+        if (recipes.isEmpty()) {
+            val list = AssetsLoader.loadRecipes(context)
+            recipeByIdMap = list.associateBy { it.id }
+            recipes = list
         }
         loaded
     }
@@ -510,6 +530,78 @@ class ExerciseRepository(
         val id = _requestedPlanId.value
         _requestedPlanId.value = null
         return id
+    }
+
+    // ---------- 计划模板 ----------
+
+    fun planTemplates(): List<PlanTemplate> = planTemplates
+
+    fun planTemplateById(id: String): PlanTemplate? = planTemplates.firstOrNull { it.id == id }
+
+    /**
+     * 套用计划模板：按训练日各新建一个计划（多日模板命名为「模板名 · 日名」），
+     * 返回新建的计划数量。套用后是普通计划，可自由改名、改动作、排日历。
+     */
+    suspend fun applyPlanTemplate(template: PlanTemplate): Int {
+        var created = 0
+        for (day in template.days) {
+            val planName = if (template.days.size > 1) {
+                "${template.title} · ${day.name}"
+            } else {
+                template.title
+            }
+            val planId = createPlan(planName, template.desc)
+            day.items.forEachIndexed { index, ti ->
+                addItem(
+                    PlanItemEntity(
+                        planId = planId,
+                        exerciseId = ti.exerciseId,
+                        sets = ti.sets,
+                        reps = ti.reps,
+                        sortOrder = index
+                    )
+                )
+            }
+            created++
+        }
+        return created
+    }
+
+    // ---------- 食谱 ----------
+
+    fun recipes(): List<Recipe> = recipes
+
+    fun recipeById(id: String): Recipe? = recipeByIdMap[id]
+
+    /** 食谱营养汇总：逐食材查食物库，按克数与倍数加总（与食物日志同一口径）。 */
+    fun recipeNutrition(recipe: Recipe, scale: Double = 1.0): NutritionTotals {
+        var energy = 0.0
+        var protein = 0.0
+        var carbs = 0.0
+        var fat = 0.0
+        for (ing in recipe.ingredients) {
+            val food = foodById(ing.foodId) ?: continue
+            val f = ing.gram * scale / 100.0
+            energy += food.energy * f
+            protein += food.protein * f
+            carbs += food.carbs * f
+            fat += food.fat * f
+        }
+        return NutritionTotals(energy, protein, carbs, fat)
+    }
+
+    /**
+     * 把食谱加入今日指定餐次：逐食材各写一条食物日志，返回实际写入条数。
+     * 之后在今日页可逐条改克数或删除，与手工添加无区别。
+     */
+    suspend fun addRecipeToToday(recipe: Recipe, scale: Double, meal: String): Int {
+        var written = 0
+        for (ing in recipe.ingredients) {
+            val food = foodById(ing.foodId) ?: continue
+            addFoodLog(food, ing.gram * scale, meal = meal)
+            written++
+        }
+        return written
     }
 
     companion object {

@@ -65,6 +65,18 @@ sealed class Destinations(val route: String) {
     object FoodList : Destinations("foodList/{category}") {
         fun create(category: String) = "foodList/$category"
     }
+
+    object PlanTemplates : Destinations("planTemplates")
+
+    object PlanTemplateDetail : Destinations("planTemplate/{templateId}") {
+        fun create(id: String) = "planTemplate/$id"
+    }
+
+    object Recipes : Destinations("recipes")
+
+    object RecipeDetail : Destinations("recipe/{recipeId}") {
+        fun create(id: String) = "recipe/$id"
+    }
 }
 
 data class TabItem(

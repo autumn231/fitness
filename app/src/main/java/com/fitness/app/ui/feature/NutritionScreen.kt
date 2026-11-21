@@ -1,8 +1,13 @@
 package com.fitness.app.ui.feature
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -53,6 +59,7 @@ import com.fitness.app.data.local.FoodLogEntity
 import com.fitness.app.data.model.Food
 import com.fitness.app.ui.common.EmptyState
 import com.fitness.app.ui.nav.Destinations
+import com.fitness.app.ui.theme.CardShape
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -153,6 +160,12 @@ fun NutritionScreen(
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp)
             )
+        }
+
+        if (query.isBlank()) {
+            item {
+                RecipeEntryCard { onNavigate(Destinations.Recipes.route) }
+            }
         }
 
         if (query.isNotBlank()) {
@@ -358,5 +371,44 @@ fun NutritionScreen(
                 TextButton(onClick = { showClearDialog = false }) { Text("取消") }
             }
         )
+    }
+}
+
+/** 食谱入口卡：置于营养页搜索框下方，和食物库、摄入记录同页。 */
+@Composable
+private fun RecipeEntryCard(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
+        shape = CardShape,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.RestaurantMenu,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(Modifier.padding(end = 12.dp))
+            Column {
+                Text(
+                    text = "食谱",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "12 道高蛋白家常菜（增肌 / 减脂），营养自动算好，可整单加入今日饮食",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
     }
 }

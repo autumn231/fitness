@@ -98,7 +98,7 @@ fun AboutScreen(onBack: () -> Unit) {
             }
 
             Text(
-                text = "fitness",
+                text = "练记",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -112,7 +112,7 @@ fun AboutScreen(onBack: () -> Unit) {
 
             AboutCard(title = "应用介绍") {
                 Text(
-                    text = "fitness 是一款完全离线的健身动作指导与营养管理 APP，内置 1324 个动作的中文指导、动图演示与详细步骤，以及 1831 种中国常见食物的营养成分查询与每日热量管理。无需联网，随时随地查阅。",
+                    text = "练记是一款完全离线的健身动作指导与营养管理 APP，内置 1324 个动作的中文指导、动图演示与详细步骤，1831 种中国常见食物的营养成分查询与每日热量管理，以及现成的训练计划模板与高蛋白食谱。无需联网，随时随地查阅。",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -138,7 +138,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "来自开源项目 hasaneyldrm/exercises-dataset（MIT License），已做中文化映射处理。其中 images/ 与 videos/ 目录下的 GIF 媒体版权归 © Gym Visual (gymvisual.com) 所有，原作者已获书面许可以 180×180 分辨率分发。",
+                    text = "来自开源项目 hasaneyldrm/exercises-dataset（MIT License），已做中文化映射处理。其中 images/ 与 videos/ 目录下的动画媒体版权归 © Gym Visual (gymvisual.com) 所有，原作者已获书面许可以 180×180 分辨率分发；本应用将 GIF 转码为 WebP 以减小体积，内容与原图一致。",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(Modifier.height(12.dp))

@@ -48,6 +48,10 @@ import com.fitness.app.ui.feature.PickerScreen
 import com.fitness.app.ui.feature.PlanDetailScreen
 import com.fitness.app.ui.feature.PlanEditorScreen
 import com.fitness.app.ui.feature.PlanScreen
+import com.fitness.app.ui.feature.PlanTemplateDetailScreen
+import com.fitness.app.ui.feature.PlanTemplateListScreen
+import com.fitness.app.ui.feature.RecipeDetailScreen
+import com.fitness.app.ui.feature.RecipeListScreen
 import com.fitness.app.ui.feature.ProfileEditScreen
 import com.fitness.app.ui.feature.ProfileScreen
 import com.fitness.app.ui.feature.SearchScreen
@@ -328,6 +332,44 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                     category = category,
                     onBack = { nav.popBackStack() },
                     onOpenFood = { id -> nav.navigate(Destinations.FoodDetail.create(id)) }
+                )
+            }
+            composable(Destinations.PlanTemplates.route) {
+                PlanTemplateListScreen(
+                    repo = repo,
+                    onNavigate = navigateTo,
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable(
+                Destinations.PlanTemplateDetail.route,
+                arguments = listOf(navArgument("templateId") { type = NavType.StringType })
+            ) { entry ->
+                val templateId = entry.arguments?.getString("templateId").orEmpty()
+                PlanTemplateDetailScreen(
+                    repo = repo,
+                    templateId = templateId,
+                    onBack = { nav.popBackStack() },
+                    onOpenExercise = { id -> nav.navigate(Destinations.Exercise.create(id)) },
+                    onApplied = { nav.popBackStack(Destinations.Plans.route, false) }
+                )
+            }
+            composable(Destinations.Recipes.route) {
+                RecipeListScreen(
+                    repo = repo,
+                    onNavigate = navigateTo,
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable(
+                Destinations.RecipeDetail.route,
+                arguments = listOf(navArgument("recipeId") { type = NavType.StringType })
+            ) { entry ->
+                val recipeId = entry.arguments?.getString("recipeId").orEmpty()
+                RecipeDetailScreen(
+                    repo = repo,
+                    recipeId = recipeId,
+                    onBack = { nav.popBackStack() }
                 )
             }
         }

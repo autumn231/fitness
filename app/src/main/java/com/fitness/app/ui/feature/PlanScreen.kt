@@ -62,26 +62,81 @@ fun PlanScreen(
             )
         }
     ) { inner ->
-        if (plans.isEmpty()) {
-            EmptyState(
-                icon = Icons.Outlined.FitnessCenter,
-                title = "还没有训练计划",
-                subtitle = "点击右下角按钮新建一个属于你的训练计划",
-                modifier = Modifier.padding(inner)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item {
+                TemplateEntryCard { onNavigate(Destinations.PlanTemplates.route) }
+            }
+            if (plans.isEmpty()) {
+                item {
+                    EmptyState(
+                        icon = Icons.Outlined.FitnessCenter,
+                        title = "还没有训练计划",
+                        subtitle = "点上方模板一键生成，或点右下角新建一个属于你的训练计划",
+                        modifier = Modifier.padding(top = 32.dp)
+                    )
+                }
+            } else {
                 items(plans, key = { it.plan.id }) { pw ->
                     PlanRow(planWithItems = pw) {
                         onNavigate(Destinations.PlanDetail.create(pw.plan.id))
                     }
                 }
+            }
+        }
+    }
+}
+
+/** 计划模板入口卡：置于计划列表顶部，和计划行同款式。 */
+@Composable
+private fun TemplateEntryCard(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = CardShape,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FitnessCenter,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(Modifier.padding(end = 12.dp))
+            Column {
+                Text(
+                    text = "计划模板",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "6 套现成方案：新手全身、推拉腿、上下肢、五分化、徒手居家",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
         }
     }
