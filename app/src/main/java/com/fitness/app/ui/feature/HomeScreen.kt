@@ -74,9 +74,10 @@ fun HomeScreen(
     val trends by vm.trends.collectAsStateWithLifecycle()
     val tdeeOverride by vm.tdeeOverride.collectAsStateWithLifecycle()
     val profile by vm.profile.collectAsStateWithLifecycle()
-    val allSessions by vm.sessions.collectAsStateWithLifecycle()
+
     val cardConfigs by vm.cardConfigs.collectAsStateWithLifecycle()
     val editCardsMode by vm.editCardsMode.collectAsStateWithLifecycle()
+    val allSessions by vm.sessions.collectAsStateWithLifecycle()
     val editLog by vm.editLog.collectAsStateWithLifecycle()
     val quickAddMeal by vm.quickAddMeal.collectAsStateWithLifecycle()
     val saveTemplateMeal by vm.saveTemplateMeal.collectAsStateWithLifecycle()
@@ -244,7 +245,9 @@ fun HomeScreen(
                 }
             }
 
-            // 训练记录（v3.9 合并到主页：最近的训练会话，数据来自 HomeViewModel.sessions）
+            // 训练记录（v3.9 合并到主页；v3.11 改为与页面同一日期口径：
+            // 只显示选中当天的会话（含进行中），和四餐记录保持一致）
+            val daySessions = allSessions.filter { it.dateKey == dateKey }
             item(key = "sessions_header") {
                 Row(
                     modifier = Modifier
@@ -263,17 +266,17 @@ fun HomeScreen(
                     }
                 }
             }
-            if (allSessions.isEmpty()) {
+            if (daySessions.isEmpty()) {
                 item(key = "sessions_empty") {
                     Text(
-                        text = "还没有训练记录，完成一次训练后会显示在这里",
+                        text = if (isToday) "今天还没有训练记录" else "这一天没有训练记录",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)
                     )
                 }
             } else {
-                items(allSessions.take(8), key = { "session_${it.id}" }) { session ->
+                items(daySessions, key = { "session_${it.id}" }) { session ->
                     SessionRecordRow(
                         session = session,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp)
