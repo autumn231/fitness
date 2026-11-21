@@ -20,9 +20,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSessionEntity::class,
         WorkoutSetEntity::class,
         WeightLogEntity::class,
-        ProfileEntity::class
+        ProfileEntity::class,
+        UserRecipeEntity::class,
+        UserRecipeItemEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutDao
     abstract fun weightDao(): WeightDao
     abstract fun profileDao(): ProfileDao
+    abstract fun userRecipeDao(): UserRecipeDao
 
     companion object {
         @Volatile
@@ -106,13 +109,38 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 → v5：新增用户自建食谱两张表，其余数据不动。 */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `user_recipes` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`title` TEXT NOT NULL, " +
+                        "`category` TEXT NOT NULL, " +
+                        "`minutes` INTEGER NOT NULL, " +
+                        "`tags` TEXT NOT NULL, " +
+                        "`steps` TEXT NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `user_recipe_items` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`recipeId` INTEGER NOT NULL, " +
+                        "`foodId` TEXT NOT NULL, " +
+                        "`gram` REAL NOT NULL, " +
+                        "`note` TEXT NOT NULL, " +
+                        "`sortOrder` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         fun get(context: Context): AppDatabase = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
                 "fitness.db"
             )
-                .addMigrations(MIGRATION_3_4)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
                 // v3 之前的版本当年就没有迁移路径，继续沿用旧行为；
                 // v3 → v4 走上面的正式迁移，不动用户数据。
                 .fallbackToDestructiveMigration()

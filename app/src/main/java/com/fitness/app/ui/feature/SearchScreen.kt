@@ -61,7 +61,7 @@ private val StringSetSaver = listSaver<Set<String>, String>(
 @Composable
 fun SearchScreen(
     repo: ExerciseRepository,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onNavigate: (String) -> Unit
 ) {
     val exercises = repo.all()
@@ -100,8 +100,10 @@ fun SearchScreen(
             TopAppBar(
                 title = { Text("搜索", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
                     }
                 },
                 actions = {

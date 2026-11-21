@@ -51,6 +51,7 @@ import com.fitness.app.ui.feature.PlanScreen
 import com.fitness.app.ui.feature.PlanTemplateDetailScreen
 import com.fitness.app.ui.feature.PlanTemplateListScreen
 import com.fitness.app.ui.feature.RecipeDetailScreen
+import com.fitness.app.ui.feature.RecipeEditorScreen
 import com.fitness.app.ui.feature.RecipeListScreen
 import com.fitness.app.ui.feature.ProfileEditScreen
 import com.fitness.app.ui.feature.ProfileScreen
@@ -60,7 +61,7 @@ import com.fitness.app.ui.feature.TrainingScreen
 import com.fitness.app.ui.feature.WeightScreen
 
 /**
- * 应用根容器：启动时加载本地数据，加载完成后展示主导航（4 Tab + 子页路由）。
+ * 应用根容器：启动时加载本地数据，加载完成后展示主导航（5 Tab + 子页路由）。
  */
 @Composable
 fun FitnessRootScreen(repo: ExerciseRepository) {
@@ -167,13 +168,17 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 TrainingScreen(repo, navigateTo)
             }
             composable(
-                Destinations.Calendar.route,
+                Destinations.Search.route,
                 enterTransition = { tabFadeIn() },
                 exitTransition = { tabFadeOut() },
                 popEnterTransition = { tabFadeIn() },
                 popExitTransition = { tabFadeOut() }
             ) {
-                CalendarScreen(repo, navigateTo)
+                SearchScreen(
+                    repo = repo,
+                    onBack = null,
+                    onNavigate = navigateTo
+                )
             }
             composable(
                 Destinations.Profile.route,
@@ -196,11 +201,11 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
             composable(Destinations.Plans.route) {
                 PlanScreen(repo, navigateTo)
             }
-            composable(Destinations.Search.route) {
-                SearchScreen(
+            composable(Destinations.Calendar.route) {
+                CalendarScreen(
                     repo = repo,
-                    onBack = { nav.popBackStack() },
-                    onNavigate = navigateTo
+                    onNavigate = navigateTo,
+                    onBack = { nav.popBackStack() }
                 )
             }
             composable(Destinations.Favorites.route) {
@@ -369,7 +374,20 @@ fun FitnessRootScreen(repo: ExerciseRepository) {
                 RecipeDetailScreen(
                     repo = repo,
                     recipeId = recipeId,
+                    onNavigate = navigateTo,
                     onBack = { nav.popBackStack() }
+                )
+            }
+            composable(
+                Destinations.RecipeEditor.route,
+                arguments = listOf(navArgument("recipeId") { type = NavType.StringType })
+            ) { entry ->
+                val recipeId = entry.arguments?.getString("recipeId").orEmpty()
+                RecipeEditorScreen(
+                    repo = repo,
+                    recipeId = recipeId,
+                    onBack = { nav.popBackStack() },
+                    onDone = { nav.popBackStack(Destinations.Recipes.route, false) }
                 )
             }
         }

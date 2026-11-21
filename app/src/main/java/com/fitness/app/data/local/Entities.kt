@@ -152,3 +152,33 @@ data class ProfileEntity(
     val heightCm: Double = 0.0,
     val activityFactor: Double = 1.375 // 活动系数（久坐 1.2 / 轻度 1.375 / 中度 1.55 / 高强度 1.725）
 )
+
+/** 用户自建食谱：食材只存食物 id 与克数，营养口径与内置食谱一致（由食物库实时汇总）。 */
+@Entity(tableName = "user_recipes")
+data class UserRecipeEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val category: String = "",
+    val minutes: Int = 0,
+    /** 标签，逗号分隔（如「下饭,快手」）。 */
+    val tags: String = "",
+    /** 做法步骤，换行分隔，一行一步。 */
+    val steps: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "user_recipe_items")
+data class UserRecipeItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val recipeId: Long,
+    val foodId: String,
+    val gram: Double,
+    val note: String = "",
+    val sortOrder: Int = 0
+)
+
+data class UserRecipeWithItems(
+    @Embedded val recipe: UserRecipeEntity,
+    @Relation(parentColumn = "id", entityColumn = "recipeId")
+    val items: List<UserRecipeItemEntity>
+)

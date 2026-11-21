@@ -1,25 +1,23 @@
 package com.fitness.app.ui.nav
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalDining
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalDining
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Destinations(val route: String) {
     object Home : Destinations("home")
     object Nutrition : Destinations("nutrition")
     object Training : Destinations("training")
-    object Calendar : Destinations("calendar")
+    object Calendar : Destinations("calendar")   // 已从 Tab 移除，作为子页保留（主页入口进入）
     object Profile : Destinations("profile")
     object Category : Destinations("category")   // 已从 Tab 移除，作为子页保留（主页快捷入口使用）
     object Search : Destinations("search")
@@ -77,6 +75,10 @@ sealed class Destinations(val route: String) {
     object RecipeDetail : Destinations("recipe/{recipeId}") {
         fun create(id: String) = "recipe/$id"
     }
+
+    object RecipeEditor : Destinations("recipeEditor/{recipeId}") {
+        fun create(id: String) = "recipeEditor/$id"
+    }
 }
 
 data class TabItem(
@@ -86,12 +88,12 @@ data class TabItem(
     val selectedIcon: ImageVector
 )
 
-// 5 Tab：今日 / 营养 / 训练(正中间) / 日历 / 我的
+// 5 Tab：今日 / 营养 / 训练(正中间) / 搜索 / 我的（日历自 v3.8 起改为子页，从主页进入）
 val tabs: List<TabItem> = listOf(
     TabItem(Destinations.Home, "今日", Icons.Outlined.Home, Icons.Filled.Home),
     TabItem(Destinations.Nutrition, "营养", Icons.Outlined.LocalDining, Icons.Filled.LocalDining),
     TabItem(Destinations.Training, "训练", Icons.Outlined.PlayCircle, Icons.Filled.PlayCircle),
-    TabItem(Destinations.Calendar, "日历", Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth),
+    TabItem(Destinations.Search, "搜索", Icons.Outlined.Search, Icons.Filled.Search),
     TabItem(Destinations.Profile, "我的", Icons.Outlined.Person, Icons.Filled.Person)
 )
 

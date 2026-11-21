@@ -12,8 +12,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -49,7 +53,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CalendarScreen(
     repo: ExerciseRepository,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     val scope = rememberCoroutineScope()
     val calendarState = repo.observeCalendarPlans().collectAsStateWithLifecycle(initialValue = emptyList())
@@ -77,7 +82,16 @@ fun CalendarScreen(
         // 底部导航栏高度由根 Scaffold 让出，避免重复内边距
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(title = { Text("日历", fontWeight = FontWeight.SemiBold) })
+            TopAppBar(
+                title = { Text("日历", fontWeight = FontWeight.SemiBold) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
+                    }
+                }
+            )
         }
     ) { inner ->
         LazyColumn(

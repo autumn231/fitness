@@ -27,8 +27,8 @@ android {
         applicationId = "com.fitness.app"
         minSdk = 31
         targetSdk = 35
-        versionCode = 15
-        versionName = "3.7"
+        versionCode = 16
+        versionName = "3.8"
         vectorDrawables { useSupportLibrary = true }
 
         // 只发布 arm64-v8a（v8a）包；依赖里的 .so 也只保留这一套

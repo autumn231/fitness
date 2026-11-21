@@ -42,11 +42,13 @@ data class RecipesFile(
 data class Recipe(
     val id: String,
     val title: String,
-    val category: String = "",          // 增肌 / 减脂
+    val category: String = "",          // 增肌 / 减脂 / 家常
     val minutes: Int = 0,
     val tags: List<String> = emptyList(),
     val ingredients: List<RecipeIngredient> = emptyList(),
-    val steps: List<String> = emptyList()
+    val steps: List<String> = emptyList(),
+    /** true = 用户自建（存数据库，id 形如 user_12），可编辑/删除；内置食谱为 false。 */
+    val editable: Boolean = false
 )
 
 @Serializable

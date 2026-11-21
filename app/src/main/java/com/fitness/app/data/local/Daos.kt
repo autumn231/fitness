@@ -240,3 +240,28 @@ interface ProfileDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ProfileEntity)
 }
+
+@Dao
+interface UserRecipeDao {
+    @Transaction
+    @Query("SELECT * FROM user_recipes ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<UserRecipeWithItems>>
+
+    @Query("SELECT * FROM user_recipes WHERE id = :id")
+    suspend fun getRecipe(id: Long): UserRecipeEntity?
+
+    @Insert
+    suspend fun insertRecipe(entity: UserRecipeEntity): Long
+
+    @Update
+    suspend fun updateRecipe(entity: UserRecipeEntity)
+
+    @Insert
+    suspend fun insertItem(entity: UserRecipeItemEntity): Long
+
+    @Query("DELETE FROM user_recipes WHERE id = :id")
+    suspend fun deleteRecipe(id: Long)
+
+    @Query("DELETE FROM user_recipe_items WHERE recipeId = :recipeId")
+    suspend fun deleteItems(recipeId: Long)
+}

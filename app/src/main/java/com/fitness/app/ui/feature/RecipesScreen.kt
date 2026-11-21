@@ -17,18 +17,23 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.RestaurantMenu
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.Meals
 import com.fitness.app.data.model.Recipe
@@ -49,9 +55,9 @@ import com.fitness.app.ui.nav.Destinations
 import com.fitness.app.ui.theme.CardShape
 import kotlinx.coroutines.launch
 
-private val CATEGORY_FILTERS = listOf("全部", "增肌", "减脂")
+private val CATEGORY_FILTERS = listOf("全部", "增肌", "减脂", "家常")
 
-/** 食谱列表：按增肌/减脂筛选，营养数字由食物库实时汇总。 */
+/** 食谱列表：内置 + 用户自建，按分类筛选，营养数字由食物库实时汇总。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeListScreen(
@@ -60,7 +66,8 @@ fun RecipeListScreen(
     onBack: () -> Unit
 ) {
     var filter by remember { mutableStateOf("全部") }
-    val all = repo.recipes()
+    val all by repo.observeAllRecipes()
+        .collectAsStateWithLifecycle(initialValue = repo.recipes())
     val shown = if (filter == "全部") all else all.filter { it.category == filter }
 
     Scaffold(
@@ -93,6 +100,26 @@ fun RecipeListScreen(
                     }
                 }
             }
+            item {
+                OutlinedButton(
+                    onClick = { onNavigate(Destinations.RecipeEditor.create("new")) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("新建食谱")
+                }
+            }
+            if (shown.isEmpty()) {
+                item {
+                    EmptyState(
+                        icon = Icons.Outlined.RestaurantMenu,
+                        title = "这个分类下还没有食谱",
+                        subtitle = "点上方「新建食谱」，把你常做的菜存下来",
+                        modifier = Modifier.padding(top = 24.dp)
+                    )
+                }
+            }
             items(shown, key = { it.id }) { recipe ->
                 RecipeCard(repo, recipe) { onNavigate(Destinations.RecipeDetail.create(recipe.id)) }
             }
@@ -120,7 +147,8 @@ private fun RecipeCard(repo: ExerciseRepository, recipe: Recipe, onClick: () -> 
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "${recipe.category} · 约 ${recipe.minutes} 分钟" +
-                    if (recipe.tags.isNotEmpty()) " · " + recipe.tags.joinToString(" / ") else "",
+                    (if (recipe.tags.isNotEmpty()) " · " + recipe.tags.joinToString(" / ") else "") +
+                    (if (recipe.editable) " · 自建" else ""),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
@@ -135,20 +163,44 @@ private fun RecipeCard(repo: ExerciseRepository, recipe: Recipe, onClick: () -> 
     }
 }
 
-/** 食谱详情：食材（可按份数缩放）、营养汇总、做法，一键整单加入今日饮食。 */
+/** 食谱详情：食材（可按份数缩放）、营养汇总、做法，一键整单加入今日饮食。自建食谱可编辑/删除。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeDetailScreen(
     repo: ExerciseRepository,
     recipeId: String,
+    onNavigate: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    val recipe = repo.recipeById(recipeId)
+    val allRecipes by repo.observeAllRecipes()
+        .collectAsStateWithLifecycle(initialValue = repo.recipes())
+    val recipe = allRecipes.firstOrNull { it.id == recipeId }
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var servings by remember { mutableIntStateOf(1) }
     var meal by remember { mutableStateOf(Meals.inferNow()) }
     var adding by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog && recipe != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除食谱") },
+            text = { Text("确定删除「${recipe.title}」吗？删除后不可恢复。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    scope.launch {
+                        repo.deleteUserRecipe(recipe)
+                        onBack()
+                    }
+                }) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -157,6 +209,15 @@ fun RecipeDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                actions = {
+                    if (recipe?.editable == true) {
+                        IconButton(onClick = {
+                            onNavigate(Destinations.RecipeEditor.create(recipe.id))
+                        }) {
+                            Icon(Icons.Outlined.Edit, contentDescription = "编辑食谱")
+                        }
                     }
                 }
             )
@@ -333,6 +394,16 @@ fun RecipeDetailScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(step, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                if (recipe.editable) {
+                    item {
+                        TextButton(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("删除这道食谱", color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
                 item { Spacer(Modifier.height(8.dp)) }

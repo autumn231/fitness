@@ -14,6 +14,9 @@ import com.fitness.app.data.local.PlanItemEntity
 import com.fitness.app.data.local.PlanWithItems
 import com.fitness.app.data.local.ProfileEntity
 import com.fitness.app.data.local.RecentEntity
+import com.fitness.app.data.local.UserRecipeEntity
+import com.fitness.app.data.local.UserRecipeItemEntity
+import com.fitness.app.data.local.UserRecipeWithItems
 import com.fitness.app.data.local.WeightLogEntity
 import com.fitness.app.data.local.WorkoutSessionEntity
 import com.fitness.app.data.local.WorkoutSetEntity
@@ -23,10 +26,12 @@ import com.fitness.app.data.model.Food
 import com.fitness.app.data.model.NutritionTotals
 import com.fitness.app.data.model.PlanTemplate
 import com.fitness.app.data.model.Recipe
+import com.fitness.app.data.model.RecipeIngredient
 import com.fitness.app.data.prefs.SettingsDataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
@@ -572,6 +577,77 @@ class ExerciseRepository(
     fun recipes(): List<Recipe> = recipes
 
     fun recipeById(id: String): Recipe? = recipeByIdMap[id]
+
+    /** 全部食谱（内置 + 用户自建）：UI 统一订阅这个流，自建增删改会实时刷新。 */
+    fun observeAllRecipes(): Flow<List<Recipe>> =
+        database.userRecipeDao().observeAll().map { userList ->
+            recipes + userList.map { it.toRecipe() }
+        }
+
+    private fun UserRecipeWithItems.toRecipe(): Recipe = Recipe(
+        id = "user_${recipe.id}",
+        title = recipe.title,
+        category = recipe.category,
+        minutes = recipe.minutes,
+        tags = recipe.tags.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+        ingredients = items.sortedBy { it.sortOrder }
+            .map { RecipeIngredient(it.foodId, it.gram, it.note) },
+        steps = recipe.steps.split("\n").map { it.trim() }.filter { it.isNotEmpty() },
+        editable = true
+    )
+
+    /** 保存用户食谱：id 形如 user_N 时更新（含整表替换食材），否则新建。返回数据库 id。 */
+    suspend fun saveUserRecipe(recipe: Recipe): Long {
+        val dao = database.userRecipeDao()
+        val tagsJoined = recipe.tags.joinToString(",")
+        val stepsJoined = recipe.steps.joinToString("\n")
+        val dbId = if (recipe.id.startsWith("user_")) {
+            val id = recipe.id.removePrefix("user_").toLong()
+            val existing = dao.getRecipe(id) ?: return -1
+            dao.updateRecipe(
+                existing.copy(
+                    title = recipe.title,
+                    category = recipe.category,
+                    minutes = recipe.minutes,
+                    tags = tagsJoined,
+                    steps = stepsJoined
+                )
+            )
+            dao.deleteItems(id)
+            id
+        } else {
+            dao.insertRecipe(
+                UserRecipeEntity(
+                    title = recipe.title,
+                    category = recipe.category,
+                    minutes = recipe.minutes,
+                    tags = tagsJoined,
+                    steps = stepsJoined
+                )
+            )
+        }
+        recipe.ingredients.forEachIndexed { index, ing ->
+            dao.insertItem(
+                UserRecipeItemEntity(
+                    recipeId = dbId,
+                    foodId = ing.foodId,
+                    gram = ing.gram,
+                    note = ing.note,
+                    sortOrder = index
+                )
+            )
+        }
+        return dbId
+    }
+
+    /** 删除用户自建食谱（内置食谱 id 不以 user_ 开头，调用无副作用）。 */
+    suspend fun deleteUserRecipe(recipe: Recipe) {
+        if (!recipe.id.startsWith("user_")) return
+        val dao = database.userRecipeDao()
+        val id = recipe.id.removePrefix("user_").toLong()
+        dao.deleteItems(id)
+        dao.deleteRecipe(id)
+    }
 
     /** 食谱营养汇总：逐食材查食物库，按克数与倍数加总（与食物日志同一口径）。 */
     fun recipeNutrition(recipe: Recipe, scale: Double = 1.0): NutritionTotals {
