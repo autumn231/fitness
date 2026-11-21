@@ -74,7 +74,6 @@ fun HomeScreen(
     val trends by vm.trends.collectAsStateWithLifecycle()
     val tdeeOverride by vm.tdeeOverride.collectAsStateWithLifecycle()
     val profile by vm.profile.collectAsStateWithLifecycle()
-    val activeSession by vm.activeSession.collectAsStateWithLifecycle()
     val allSessions by vm.sessions.collectAsStateWithLifecycle()
     val cardConfigs by vm.cardConfigs.collectAsStateWithLifecycle()
     val editCardsMode by vm.editCardsMode.collectAsStateWithLifecycle()
@@ -183,26 +182,6 @@ fun HomeScreen(
                                 carbs = summary.carbs,
                                 fat = summary.fat,
                                 onClick = { vm.setShowTdee(true) }
-                            )
-                        }
-                        HomeCards.TRAINING -> item(key = "card_training") {
-                            TodayTrainingCard(
-                                finishedCount = summary.daySessions.size,
-                                finishedDurationSec = summary.daySessions.sumOf { it.durationSec },
-                                hasActiveToday = activeSession != null &&
-                                    activeSession?.dateKey == DateKeys.today(),
-                                planName = summary.todayPlan?.plan?.name,
-                                planItemCount = summary.todayPlan?.items?.size ?: 0,
-                                isToday = isToday,
-                                onStart = {
-                                    summary.todayPlan?.let { pw ->
-                                        repo.requestPlan(pw.plan.id)
-                                        onNavigate(Destinations.Training.route)
-                                    }
-                                },
-                                onOpenTraining = { onNavigate(Destinations.Training.route) },
-                                onSchedule = { onNavigate(Destinations.Calendar.route) },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }
                         HomeCards.WEIGHT -> item(key = "card_weight") {

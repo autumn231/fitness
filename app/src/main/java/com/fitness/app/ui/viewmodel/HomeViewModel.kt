@@ -31,15 +31,15 @@ import java.time.LocalDate
 /** 今日页概览卡片定义（顺序即默认顺序）。 */
 object HomeCards {
     const val BUDGET = "budget"
-    const val TRAINING = "training"
     const val WEIGHT = "weight"
     const val TREND = "trend"
 
-    val DEFAULT_ORDER = listOf(BUDGET, TRAINING, WEIGHT, TREND)
+    // v3.10 起无「今日训练」卡：训练记录已合并到主页列表区，与卡片重复故移除。
+    // 存量配置里若还有 training，parseCardConfig 按 DEFAULT_ORDER 过滤会自动忽略。
+    val DEFAULT_ORDER = listOf(BUDGET, WEIGHT, TREND)
 
     fun titleOf(id: String): String = when (id) {
         BUDGET -> "热量总账"
-        TRAINING -> "今日训练"
         WEIGHT -> "体重"
         TREND -> "趋势"
         else -> id

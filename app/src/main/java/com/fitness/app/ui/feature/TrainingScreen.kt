@@ -95,6 +95,9 @@ fun TrainingScreen(
             TopAppBar(
                 title = { Text("训练", fontWeight = FontWeight.SemiBold) },
                 actions = {
+                    TextButton(onClick = { onNavigate(Destinations.Calendar.route) }) {
+                        Text("日历")
+                    }
                     TextButton(onClick = { onNavigate(Destinations.Plans.route) }) {
                         Text("管理计划")
                     }
