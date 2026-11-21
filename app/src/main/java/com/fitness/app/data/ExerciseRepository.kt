@@ -670,11 +670,15 @@ class ExerciseRepository(
      * 把食谱加入今日指定餐次：逐食材各写一条食物日志，返回实际写入条数。
      * 之后在今日页可逐条改克数或删除，与手工添加无区别。
      */
-    suspend fun addRecipeToToday(recipe: Recipe, scale: Double, meal: String): Int {
+    suspend fun addRecipeToToday(recipe: Recipe, scale: Double, meal: String): Int =
+        addRecipeToDate(recipe, scale, DateKeys.today(), meal)
+
+    /** 把食谱整单加入指定日期的指定餐次（主页补记、加食物页选食谱都走这里）。 */
+    suspend fun addRecipeToDate(recipe: Recipe, scale: Double, dateKey: String, meal: String): Int {
         var written = 0
         for (ing in recipe.ingredients) {
             val food = foodById(ing.foodId) ?: continue
-            addFoodLog(food, ing.gram * scale, meal = meal)
+            addFoodLog(food, ing.gram * scale, dateKey, meal)
             written++
         }
         return written

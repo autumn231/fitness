@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fitness.app.data.ExerciseRepository
 import com.fitness.app.data.local.MealTemplateWithItems
 import com.fitness.app.data.model.Food
+import com.fitness.app.data.model.Recipe
 import com.fitness.app.ui.common.EmptyState
 import com.fitness.app.ui.common.SectionHeader
 import com.fitness.app.ui.theme.CardShape
@@ -98,6 +99,9 @@ fun AddFoodScreen(
 
     val templates by repo.observeMealTemplates()
         .collectAsStateWithLifecycle(initialValue = emptyList())
+
+    val recipes by repo.observeAllRecipes()
+        .collectAsStateWithLifecycle(initialValue = repo.recipes())
 
     var dialogFood by remember { mutableStateOf<Pair<Food, Double>?>(null) }
 
@@ -183,6 +187,23 @@ fun AddFoodScreen(
                     }
                 }
 
+                if (recipes.isNotEmpty()) {
+                    item { SectionHeader(title = "食谱") }
+                    items(recipes, key = { "recipe_" + it.id }) { recipe ->
+                        RecipePickRow(
+                            repo = repo,
+                            recipe = recipe,
+                            onApply = {
+                                scope.launch {
+                                    repo.addRecipeToDate(recipe, 1.0, dateKey, meal)
+                                    onBack()
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
                 if (recentFoods.isNotEmpty()) {
                     item { SectionHeader(title = "最近吃过") }
                     items(recentFoods, key = { "r_" + it.first.id }) { (food, grams) ->
@@ -207,7 +228,9 @@ fun AddFoodScreen(
                     }
                 }
 
-                if (templates.isEmpty() && recentFoods.isEmpty() && frequentFoods.isEmpty()) {
+                if (templates.isEmpty() && recipes.isEmpty() &&
+                    recentFoods.isEmpty() && frequentFoods.isEmpty()
+                ) {
                     item {
                         EmptyState(
                             icon = Icons.Outlined.RestaurantMenu,
@@ -327,6 +350,53 @@ private fun MealTemplateRow(
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
+        }
+    }
+}
+
+/** 食谱整单加入行：与「常用餐」同款式，点按按 1 份把全部食材写入当前日期餐次。 */
+@Composable
+private fun RecipePickRow(
+    repo: ExerciseRepository,
+    recipe: Recipe,
+    onApply: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val totals = repo.recipeNutrition(recipe)
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onApply),
+        shape = CardShape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = recipe.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${recipe.ingredients.size} 样食材 · 约 ${totals.energy.toInt()} kcal，点按整单加入",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "整单加入",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         }
     }
 }
