@@ -23,7 +23,6 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -169,12 +168,6 @@ fun ProfileScreen(
                 title = "体重进度",
                 subtitle = latestWeight?.let { "最新 ${formatKg(it.weightKg)} kg · ${it.dateKey}" } ?: "还没有记录，点开记一条",
                 onClick = { onNavigate(Destinations.Weight.route) }
-            )
-            ProfileItem(
-                icon = Icons.Outlined.Search,
-                title = "搜索动作",
-                subtitle = "按关键词、肌群、器械查找",
-                onClick = { onNavigate(Destinations.Search.route) }
             )
             ProfileItem(
                 icon = Icons.Outlined.BookmarkBorder,

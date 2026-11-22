@@ -151,14 +151,6 @@ fun SettingsScreen(
                 )
             }
 
-            // 数据来源
-            SettingsCard(title = "数据来源", icon = null) {
-                Text(
-                    text = "本应用内置 1324 个健身动作数据，全部来自开源项目 hasaneyldrm/exercises-dataset，并已汉化处理。所有图片与动图均随应用离线分发。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 
