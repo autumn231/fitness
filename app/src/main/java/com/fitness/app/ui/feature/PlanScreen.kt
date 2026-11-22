@@ -133,7 +133,7 @@ private fun TemplateEntryCard(onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "6 套现成方案：新手全身、推拉腿、上下肢、五分化、徒手居家",
+                    text = "6 套现成方案：新手全身、推拉腿（三练/六练）、上下肢、五分化、徒手居家",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )

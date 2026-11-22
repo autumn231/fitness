@@ -381,9 +381,17 @@ class ExerciseRepository(
             val exercise = byId(item.exerciseId)
             val name = exercise?.displayName() ?: "未知动作"
             val prev = dao.previousSets(item.exerciseId, sessionId)
+            // 计划项 reps 是字符串：纯数字 = 次数；「40秒」「2分钟」= 计时类动作，
+            // 以前会被 toIntOrNull 吞掉回退成 12 次，v3.14 起解析成 durationSec 带进训练
+            val planDurationSec = parseDurationSec(item.reps)
             val defaultReps = item.reps.trim().toIntOrNull() ?: 12
             repeat(item.sets.coerceAtLeast(1)) { idx ->
                 val p = prev.getOrNull(idx) ?: prev.lastOrNull()
+                val durationSec = when {
+                    planDurationSec > 0 -> planDurationSec
+                    (p?.durationSec ?: 0) > 0 -> p!!.durationSec
+                    else -> 0
+                }
                 dao.insertSet(
                     WorkoutSetEntity(
                         sessionId = sessionId,
@@ -391,7 +399,8 @@ class ExerciseRepository(
                         exerciseName = name,
                         setIndex = idx,
                         weightKg = p?.weightKg ?: 0.0,
-                        reps = p?.reps ?: defaultReps,
+                        reps = if (durationSec > 0) 0 else (p?.reps ?: defaultReps),
+                        durationSec = durationSec,
                         done = false,
                         sortOrder = order
                     )
@@ -493,12 +502,18 @@ class ExerciseRepository(
             .entries.sortedBy { entry -> entry.value.minOf { it.sortOrder } }
             .forEach { (exerciseId, exSets) ->
                 val doneSets = exSets.filter { it.done }.ifEmpty { exSets }
+                val first = doneSets.firstOrNull()
                 addItem(
                     PlanItemEntity(
                         planId = planId,
                         exerciseId = exerciseId,
                         sets = doneSets.size,
-                        reps = (doneSets.firstOrNull()?.reps ?: 12).toString(),
+                        // 计时类动作反存时写回「N秒」，与模板口径一致
+                        reps = when {
+                            first == null -> "12"
+                            first.durationSec > 0 -> "${first.durationSec}秒"
+                            else -> first.reps.toString()
+                        },
                         sortOrder = exSets.minOf { it.sortOrder }
                     )
                 )
@@ -687,5 +702,14 @@ class ExerciseRepository(
     companion object {
         /** 快速添加（只填热量）记录的 foodId 标记，不对应食物库中的真实食物。 */
         const val QUICK_ADD_FOOD_ID = "quick_add"
+
+        /** 计划项 reps 里的计时写法（「40秒」「2分钟」「1分30秒」）解析为秒；不是计时写法返回 0。 */
+        fun parseDurationSec(reps: String): Int {
+            val s = reps.trim()
+            if (!s.contains('秒') && !s.contains('分')) return 0
+            val min = Regex("""(\d+)\s*分""").find(s)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val sec = Regex("""(\d+)\s*秒""").find(s)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            return min * 60 + sec
+        }
     }
 }

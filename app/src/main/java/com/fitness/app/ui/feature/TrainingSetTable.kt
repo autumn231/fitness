@@ -85,11 +85,13 @@ fun ExerciseSetCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     if (subtitle.isNotBlank()) {
+                        // 英文原名是区分具体动作的唯一标识，给正文级字号，别用小字灰字
                         Text(
                             text = subtitle,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -103,20 +105,25 @@ fun ExerciseSetCard(
             }
 
             Spacer(Modifier.height(10.dp))
+            // 计时类动作（平板支撑等）：第二列记秒数而不是次数
+            val timed = sets.any { it.durationSec > 0 }
             // 表头
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SetCellText("组", Modifier.width(28.dp))
                 SetCellText("上次", Modifier.width(64.dp))
                 SetCellText("kg", Modifier.weight(1f))
                 Spacer(Modifier.width(8.dp))
-                SetCellText("次数", Modifier.weight(1f))
+                SetCellText(if (timed) "秒" else "次数", Modifier.weight(1f))
                 Spacer(Modifier.width(48.dp))
             }
             sets.forEach { set ->
                 val prev = previous.getOrNull(set.setIndex) ?: previous.lastOrNull()
                 SetRow(
                     set = set,
-                    previousText = prev?.let { "${formatKg(it.weightKg)}×${it.reps}" } ?: "—",
+                    timed = timed,
+                    previousText = prev?.let {
+                        if (it.durationSec > 0) "${it.durationSec}秒" else "${formatKg(it.weightKg)}×${it.reps}"
+                    } ?: "—",
                     onUpdate = onUpdateSet,
                     onToggleDone = { onToggleDone(set) }
                 )
@@ -143,6 +150,7 @@ private fun SetCellText(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun SetRow(
     set: WorkoutSetEntity,
+    timed: Boolean,
     previousText: String,
     onUpdate: (WorkoutSetEntity) -> Unit,
     onToggleDone: () -> Unit
@@ -150,7 +158,9 @@ private fun SetRow(
     var weightText by remember(set.id) {
         mutableStateOf(if (set.weightKg % 1.0 == 0.0) set.weightKg.toInt().toString() else set.weightKg.toString())
     }
-    var repsText by remember(set.id) { mutableStateOf(set.reps.toString()) }
+    var repsText by remember(set.id) {
+        mutableStateOf(if (timed) set.durationSec.toString() else set.reps.toString())
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -185,7 +195,8 @@ private fun SetRow(
             value = repsText,
             onValueChange = { s ->
                 repsText = s.filter { it.isDigit() }.take(3)
-                onUpdate(set.copy(reps = repsText.toIntOrNull() ?: 0))
+                val v = repsText.toIntOrNull() ?: 0
+                onUpdate(if (timed) set.copy(durationSec = v) else set.copy(reps = v))
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

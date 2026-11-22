@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         UserRecipeEntity::class,
         UserRecipeItemEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -134,13 +134,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v5 → v6：训练组加 durationSec 列（计时类动作的目标秒数），其余数据不动。 */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `workout_sets` ADD COLUMN `durationSec` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun get(context: Context): AppDatabase = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
                 "fitness.db"
             )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 // v3 之前的版本当年就没有迁移路径，继续沿用旧行为；
                 // v3 → v4 走上面的正式迁移，不动用户数据。
                 .fallbackToDestructiveMigration()

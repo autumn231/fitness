@@ -3,6 +3,7 @@ package com.fitness.app.ui.feature
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -154,6 +156,7 @@ fun PlanTemplateDetailScreen(
         bottomBar = {
             if (template != null) {
                 Surface(shadowElevation = 8.dp) {
+                    Box(Modifier.navigationBarsPadding()) {
                     Button(
                         onClick = {
                             if (!applying) {
@@ -170,6 +173,7 @@ fun PlanTemplateDetailScreen(
                             .padding(16.dp)
                     ) {
                         Text(if (applying) "正在加入…" else "全部加入我的计划（${template.days.size} 个训练日）")
+                    }
                     }
                 }
             }

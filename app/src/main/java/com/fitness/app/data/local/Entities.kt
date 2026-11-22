@@ -128,6 +128,9 @@ data class WorkoutSetEntity(
     val setIndex: Int,                 // 组序号（同一动作内从 0 开始）
     val weightKg: Double = 0.0,
     val reps: Int = 0,
+    // 计时类动作（如平板支撑）的目标秒数；>0 时本组按秒计时、reps 不用（v6 起）
+    @ColumnInfo(defaultValue = "0")
+    val durationSec: Int = 0,
     val done: Boolean = false,
     val sortOrder: Int = 0             // 动作在会话内的出现顺序
 )

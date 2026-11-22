@@ -38,7 +38,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import android.widget.Toast
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,6 +72,7 @@ fun AddFoodScreen(
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
     var query by rememberSaveable { mutableStateOf("") }
@@ -176,6 +179,7 @@ fun AddFoodScreen(
                             onApply = {
                                 scope.launch {
                                     repo.applyMealTemplate(t, dateKey, meal)
+                                    Toast.makeText(context, "已把「${t.template.name}」加入$meal", Toast.LENGTH_SHORT).show()
                                     onBack()
                                 }
                             },
@@ -196,6 +200,7 @@ fun AddFoodScreen(
                             onApply = {
                                 scope.launch {
                                     repo.addRecipeToDate(recipe, 1.0, dateKey, meal)
+                                    Toast.makeText(context, "已把「${recipe.title}」加入$meal", Toast.LENGTH_SHORT).show()
                                     onBack()
                                 }
                             },

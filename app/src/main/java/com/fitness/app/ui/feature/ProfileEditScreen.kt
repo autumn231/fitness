@@ -180,7 +180,7 @@ fun ProfileEditScreen(
                     Text("每日热量目标预览", style = MaterialTheme.typography.labelMedium)
                     when {
                         latestWeight == null -> Text(
-                            "先记一条体重，才能算出目标",
+                            "先记一条体重，才能算出目标。保存档案后，去「我的 → 体重进度」点 + 记一条就行",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         previewTdee > 0 -> Text(
@@ -200,7 +200,10 @@ fun ProfileEditScreen(
                 onClick = {
                     scope.launch {
                         repo.saveProfile(draft)
-                        snackbar.showSnackbar("档案已保存")
+                        snackbar.showSnackbar(
+                            if (latestWeight == null) "档案已保存，去记一条体重就能算出每日目标"
+                            else "档案已保存"
+                        )
                         onBack()
                     }
                 },

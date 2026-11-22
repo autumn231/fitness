@@ -1,5 +1,6 @@
 package com.fitness.app.ui.feature
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -103,6 +106,34 @@ fun TrainingScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            // 训练进行中：完成/放弃固定在底部，不用滑过全部动作卡才找得到
+            if (session != null) {
+                Surface(shadowElevation = 8.dp) {
+                    Column(
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Button(
+                            onClick = { vm.finish() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Filled.Check, contentDescription = null)
+                            Spacer(Modifier.width(6.dp))
+                            Text("完成训练")
+                        }
+                        TextButton(
+                            onClick = { vm.setConfirmAbandon(true) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("放弃这次训练", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
         }
     ) { inner ->
         LazyColumn(
@@ -233,7 +264,18 @@ fun TrainingScreen(
                                 onNavigate(Destinations.Exercise.create(exerciseId))
                             },
                             onUpdateSet = { vm.updateSet(it) },
-                            onToggleDone = { vm.toggleDone(it) },
+                            onToggleDone = { set ->
+                                // 勾完一组会自动开始组间歇倒计时，给个明确提示，
+                                // 不然计时卡在列表顶部、滑下去就看不见
+                                if (!set.done) {
+                                    Toast.makeText(
+                                        appContext,
+                                        "这组完成，休息 $restTotal 秒",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                vm.toggleDone(set)
+                            },
                             onAddSet = { vm.addSet(exerciseId) },
                             onRemoveExercise = { vm.removeExercise(exerciseId) }
                         )
@@ -248,24 +290,6 @@ fun TrainingScreen(
                         Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
                         Text("添加动作")
-                    }
-                }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = { vm.finish() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Filled.Check, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("完成训练")
-                        }
-                        TextButton(
-                            onClick = { vm.setConfirmAbandon(true) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("放弃这次训练", color = MaterialTheme.colorScheme.error)
-                        }
                     }
                 }
             }
