@@ -104,6 +104,8 @@ keyPassword=******
 
 发布前请先提升 `app/build.gradle.kts` 中的 `versionCode` 与 `versionName`。GitHub Releases 每天只保留当天最新一个版本。
 
+最新版本（v3.14）请前往 [Releases](https://github.com/autumn231/fitness/releases) 页面下载 APK 安装。
+
 ## 数据来源与版权声明
 
 ### 动作数据
